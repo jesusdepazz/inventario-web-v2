@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  @apply bg-slate-100;
+  overflow: hidden;
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+.input-field {
+  @apply w-full border border-gray-300 rounded px-3 py-2 text-sm;
+}
+.info-box {
+  @apply px-3 py-2 bg-gray-100 rounded border border-gray-300 text-sm text-gray-800;
+}
