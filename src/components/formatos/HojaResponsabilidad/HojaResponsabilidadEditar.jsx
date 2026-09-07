@@ -586,7 +586,7 @@ const HojaResponsabilidadEditar = () => {
 
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="px-5 py-4 border-b border-slate-100">
-                      <h3 className="text-base font-semibold text-slate-900">Equipos</h3>
+                      <h3 className="text-base font-semibold text-slate-900">Activos</h3>
                       <p className="text-sm text-slate-600">Agregá por codificación.</p>
                     </div>
 

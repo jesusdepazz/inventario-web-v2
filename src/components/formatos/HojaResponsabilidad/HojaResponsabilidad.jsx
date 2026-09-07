@@ -569,7 +569,7 @@ const HojaResponsabilidadForm = () => {
 
                       <div className="rounded-2xl border border-slate-200 overflow-hidden">
                         <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                          <div className="text-sm font-semibold text-slate-900">Equipos</div>
+                          <div className="text-sm font-semibold text-slate-900">Activos</div>
                           <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded-full">
                             {equipos.length}
                           </span>

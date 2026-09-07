@@ -112,7 +112,7 @@ const EliminarEquipos = () => {
         <div className="px-6 py-4 border-b border-slate-100">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Eliminar equipos</h1>
+              <h1 className="text-xl font-bold text-slate-900">Eliminar activos</h1>
               <p className="text-sm text-slate-600">Filtrá y eliminá equipos del inventario.</p>
             </div>
 
