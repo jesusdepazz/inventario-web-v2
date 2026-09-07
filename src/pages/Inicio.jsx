@@ -36,7 +36,7 @@ const Inicio = () => {
 
   const quick = useMemo(() => {
     return [
-      { label: "Buscar equipo", to: "/equipos/inventario", icon: <FaSearch /> },
+      { label: "Buscar activos", to: "/equipos/inventario", icon: <FaSearch /> },
       { label: "Ver asignaciones", to: "/asignaciones/lista", icon: <FaUserCheck /> },
       { label: "Hojas", to: "/formatos/listahojasresponsabilidad", icon: <FaFilePdf /> },
       { label: "Traslados", to: "/formatos/traslados/lista", icon: <FaExchangeAlt /> },
@@ -46,15 +46,15 @@ const Inicio = () => {
   const accesosAdmin = useMemo(() => {
     return [
       {
-        title: "Ingresar equipo",
-        desc: "Agrega un nuevo equipo al inventario.",
+        title: "Ingresar activo",
+        desc: "Configura y agrega un activo al inventario.",
         icon: <FaPlus />,
         to: "/equipos/crear",
         tag: "Admin",
       },
       {
-        title: "Asignar equipo",
-        desc: "Asigna equipos a colaboradores.",
+        title: "Asignar activo",
+        desc: "Asigna activos a colaboradores.",
         icon: <FaUserCheck />,
         to: "/asignaciones/crear",
         tag: "Admin",
@@ -68,7 +68,7 @@ const Inicio = () => {
       },
       {
         title: "Inventario",
-        desc: "Visualiza equipos registrados y sus datos principales.",
+        desc: "Visualiza activos, categorías y familias registradas.",
         icon: <FaLaptop />,
         to: "/equipos/inventario",
         tag: "Equipos",
@@ -79,15 +79,15 @@ const Inicio = () => {
   const cards = useMemo(() => {
     return [
       {
-        title: "Ingresar equipo",
-        desc: "Agrega un nuevo equipo al inventario.",
+        title: "Ingresar activo",
+        desc: "Configura y agrega un activo al inventario.",
         icon: <FaPlus />,
         to: "/equipos/crear",
         tag: "Admin",
       },
       {
-        title: "Asignar equipo",
-        desc: "Asigna equipos a colaboradores.",
+        title: "Asignar activo",
+        desc: "Asigna activos a colaboradores.",
         icon: <FaUserCheck />,
         to: "/asignaciones/crear",
         tag: "Admin",
@@ -101,7 +101,7 @@ const Inicio = () => {
       },
       {
         title: "Inventario",
-        desc: "Visualiza equipos registrados y sus datos principales.",
+        desc: "Visualiza activos, categorías y familias registradas.",
         icon: <FaLaptop />,
         to: "/equipos/inventario",
         tag: "Equipos",
@@ -343,7 +343,7 @@ const Inicio = () => {
                     onClick={() => navigate("/equipos/crear")}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-semibold transition"
                   >
-                    Ingresar equipo
+                    Ingresar activo
                   </button>
                   <button
                     onClick={() => navigate("/asignaciones/crear")}

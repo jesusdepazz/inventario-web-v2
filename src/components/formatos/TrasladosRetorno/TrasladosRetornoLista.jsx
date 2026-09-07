@@ -198,7 +198,7 @@ const TrasladosRetornoLista = () => {
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Número</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha Pase</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Solicitante</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Equipos</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">Activos</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Motivo</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Retorno</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha Retorno</th>

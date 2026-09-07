@@ -265,7 +265,7 @@ export default function CrearAsignacion() {
               </div>
               <div className="rounded-xl border border-slate-200 bg-white">
                 <div className="px-4 py-3 border-b border-slate-100">
-                  <h2 className="text-sm font-semibold text-slate-900">Equipos</h2>
+                  <h2 className="text-sm font-semibold text-slate-900">Activos</h2>
                   <p className="text-xs text-slate-600">Agregá por codificación.</p>
                 </div>
 

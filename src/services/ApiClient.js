@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: "https://inveq.guandy.com/api", 
+  baseURL: "https://localhost:7291/api", 
   headers: {
     "Content-Type": "application/json",
   },
