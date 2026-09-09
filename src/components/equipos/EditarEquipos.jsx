@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import EquiposServices from "../../services/EquiposServices";
 import UbicacionesService from "../../services/UbicacionesServices";
+import { CATEGORIAS_ACTIVOS, obtenerCategoria } from "./catalogoActivos";
 
 const EditarEquipo = () => {
   const [codificacion, setCodificacion] = useState("");
@@ -52,6 +53,8 @@ const EditarEquipo = () => {
     const { name, value } = e.target;
     setEquipo((prev) => ({ ...prev, [name]: value }));
   };
+
+  const categoriaSeleccionada = obtenerCategoria(equipo?.categoria);
 
   const guardarCambios = async () => {
     if (!equipo?.id) return;
@@ -145,6 +148,22 @@ const EditarEquipo = () => {
                 </div>
 
                 <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+
+                  <div className="flex flex-col">
+                    <label className="text-xs font-semibold text-slate-600">Categoría</label>
+                    <select name="categoria" value={equipo.categoria || ""} onChange={(e) => setEquipo((prev) => ({ ...prev, categoria: e.target.value, familia: "" }))} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800">
+                      <option value="">Seleccione categoría</option>
+                      {CATEGORIAS_ACTIVOS.map((categoria) => <option key={categoria.value} value={categoria.value}>{categoria.label}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className="text-xs font-semibold text-slate-600">Familia</label>
+                    <select name="familia" value={equipo.familia || ""} onChange={handleChange} disabled={!categoriaSeleccionada} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800 disabled:bg-slate-100">
+                      <option value="">Seleccione familia</option>
+                      {categoriaSeleccionada?.familias.map((familia) => <option key={familia} value={familia}>{familia}</option>)}
+                    </select>
+                  </div>
 
                   <div className="flex flex-col">
                     <label className="text-xs font-semibold text-slate-600">

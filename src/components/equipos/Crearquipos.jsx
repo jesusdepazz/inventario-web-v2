@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import UbicacionesService from "../../services/UbicacionesServices";
 import EquiposService from "../../services/EquiposServices";
+import { obtenerCategoria } from "./catalogoActivos";
 
 const CrearEquipo = () => {
   const [form, setForm] = useState({
@@ -26,13 +27,67 @@ const CrearEquipo = () => {
     ubicacion: "",
     comentarios: "",
     observaciones: "",
+    categoria: "",
+    familia: "",
+    descripcionBien: "",
+    direccion: "",
+    fichaTecnica: "",
+    numeroChapa: "",
+    controlLlaves: "",
+    estadoFisico: "",
+    color: "",
+    dimensiones: "",
+    placa: "",
+    vin: "",
+    kilometraje: "",
+    tipoCombustible: "",
+    caracteristicas: "",
+    multimedia: [],
+    polizaSeguro: "",
   });
 
   const [ubicaciones, setUbicaciones] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [receipt, setReceipt] = useState(null);
   const navigate = useNavigate();
 
+  const categoriaSeleccionada = obtenerCategoria(form.categoria);
+
+  const imprimirRecepcion = () => {
+    if (!receipt) return;
+    const ventana = window.open("", "_blank", "width=900,height=700");
+    if (!ventana) {
+      toast.warn("El navegador bloqueó la ventana de impresión.");
+      return;
+    }
+    ventana.document.write(`
+      <html><head><title>Recepción de activo</title>
+      <style>body{font-family:Arial,sans-serif;margin:40px;color:#172033}h1{font-size:22px;border-bottom:2px solid #173b70;padding-bottom:12px}table{width:100%;border-collapse:collapse;margin-top:24px}td{border:1px solid #ccd3df;padding:10px}td:first-child{font-weight:bold;width:35%;background:#f3f6fa}.firma{margin-top:70px;display:flex;justify-content:space-between}.linea{border-top:1px solid #172033;width:40%;padding-top:8px;text-align:center}</style>
+      </head><body><h1>Recepción / ingreso a bodega de activos</h1>
+      <p><strong>Guatemalan Candies, S.A.</strong></p>
+      <table><tbody>
+      <tr><td>Fecha de ingreso</td><td>${receipt.fechaIngreso || "-"}</td></tr>
+      <tr><td>Categoría</td><td>${receipt.categoria || "-"}</td></tr>
+      <tr><td>Familia</td><td>${receipt.familia || "-"}</td></tr>
+      <tr><td>Codificación</td><td>${receipt.codificacion || "-"}</td></tr>
+      <tr><td>Descripción / tipo</td><td>${receipt.descripcionBien || receipt.tipoEquipo || "-"}</td></tr>
+      <tr><td>Marca y modelo</td><td>${receipt.marca || "-"} / ${receipt.modelo || "-"}</td></tr>
+      <tr><td>Serie</td><td>${receipt.serie || "-"}</td></tr>
+      <tr><td>Proveedor</td><td>${receipt.proveedor || "-"}</td></tr>
+      <tr><td>Orden de compra</td><td>${receipt.ordenCompra || "-"}</td></tr>
+      <tr><td>Factura</td><td>${receipt.factura || "-"}</td></tr>
+      <tr><td>Ubicación de bodega</td><td>${receipt.ubicacion || "-"}</td></tr>
+      </tbody></table><div class="firma"><div class="linea">Entrega</div><div class="linea">Recibe</div></div>
+      </body></html>`);
+    ventana.document.close();
+    ventana.focus();
+    ventana.print();
+  };
+
   useEffect(() => {
+    const categoriaInicial = new URLSearchParams(window.location.search).get("categoria");
+    if (categoriaInicial) setForm((prev) => ({ ...prev, categoria: categoriaInicial }));
+
     const cargarUbicaciones = async () => {
       try {
         const res = await UbicacionesService.obtenerTodas();
@@ -52,14 +107,14 @@ const CrearEquipo = () => {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (name === "imagen") setForm((prev) => ({ ...prev, imagen: files?.[0] }));
+    if (files) setForm((prev) => ({ ...prev, [name]: e.target.multiple ? Array.from(files) : files?.[0] }));
     else setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const camposObligatorios = ["equipoTipo", "estado", "marca", "modelo", "ubicacion", "codificacion"];
+    const camposObligatorios = ["categoria", "familia", "estado", "ubicacion", "codificacion"];
 
     for (const campo of camposObligatorios) {
       if (!form[campo]) {
@@ -69,13 +124,16 @@ const CrearEquipo = () => {
     }
 
     const formData = new FormData();
-    for (const key in form) formData.append(key, form[key] ?? "");
+    for (const key in form) {
+      if (key === "multimedia" && Array.isArray(form[key])) form[key].forEach((file) => formData.append(key, file));
+      else formData.append(key, form[key] ?? "");
+    }
 
     try {
       setSaving(true);
       await EquiposService.crear(formData);
-      toast.success("✅ Equipo creado exitosamente");
-      navigate("/inicio");
+      setReceipt({ ...form });
+      toast.success("Activo creado exitosamente");
     } catch (error) {
       console.error("Error al crear el equipo:", error);
 
@@ -99,13 +157,27 @@ const CrearEquipo = () => {
     <div className="h-[calc(100vh-52px)] flex justify-center pt-6 pb-6 overflow-hidden">
       <div className="w-full max-w-7xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100">
-          <h1 className="text-xl font-bold text-slate-900">Crear equipo</h1>
+          <h1 className="text-xl font-bold text-slate-900">Ingresar activo al inventario</h1>
           <p className="text-sm text-slate-600">
-            Ingresá los datos del equipo. Los campos con <span className="text-red-600 font-semibold">*</span> son obligatorios.
+            Configuración de activos. Los campos con <span className="text-red-600 font-semibold">*</span> son obligatorios.
           </p>
         </div>
         <div className="px-6 py-5 overflow-auto max-h-[calc(100vh-170px)]">
           <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6">
+            <section className="rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide">CLASIFICACIÓN DEL ACTIVO</h2>
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col">
+                  <label htmlFor="familia" className="text-xs font-semibold text-slate-600">Familia <span className="text-red-600">*</span></label>
+                  <select id="familia" name="familia" value={form.familia} onChange={handleChange} required disabled={!categoriaSeleccionada} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800 disabled:bg-slate-100">
+                    <option value="">-- Seleccione familia --</option>
+                    {categoriaSeleccionada?.familias.map((familia) => <option key={familia} value={familia}>{familia}</option>)}
+                  </select>
+                </div>
+              </div>
+            </section>
             <section className="rounded-2xl border border-slate-200 overflow-hidden">
               <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
                 <h2 className="text-sm font-bold text-slate-900 tracking-wide">DATOS DE COMPRA</h2>
@@ -175,6 +247,34 @@ const CrearEquipo = () => {
             </section>
             <section className="rounded-2xl border border-slate-200 overflow-hidden">
               <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide">INSTRUCCIONES Y DATOS DEL APARTADO</h2>
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="flex flex-col md:col-span-3"><label htmlFor="descripcionBien" className="text-xs font-semibold text-slate-600">Descripción del bien</label><input id="descripcionBien" name="descripcionBien" value={form.descripcionBien} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                {form.categoria === "Inmuebles" && <>
+                  <div className="flex flex-col md:col-span-2"><label htmlFor="direccion" className="text-xs font-semibold text-slate-600">Dirección</label><input id="direccion" name="direccion" value={form.direccion} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="fichaTecnica" className="text-xs font-semibold text-slate-600">Ficha técnica</label><input id="fichaTecnica" name="fichaTecnica" value={form.fichaTecnica} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col md:col-span-2"><label htmlFor="multimedia" className="text-xs font-semibold text-slate-600">Documentos e imágenes</label><input id="multimedia" name="multimedia" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="polizaSeguro" className="text-xs font-semibold text-slate-600">Póliza de seguro</label><input id="polizaSeguro" name="polizaSeguro" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" /></div>
+                </>}
+                {form.categoria === "Mobiliario y equipo" && <>
+                  <div className="flex flex-col"><label htmlFor="numeroChapa" className="text-xs font-semibold text-slate-600">Número de chapa</label><input id="numeroChapa" name="numeroChapa" value={form.numeroChapa} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="controlLlaves" className="text-xs font-semibold text-slate-600">Control de llaves</label><select id="controlLlaves" name="controlLlaves" value={form.controlLlaves} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"><option value="">-- Seleccione --</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+                  <div className="flex flex-col"><label htmlFor="estadoFisico" className="text-xs font-semibold text-slate-600">Estado físico actual</label><input id="estadoFisico" name="estadoFisico" value={form.estadoFisico} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="color" className="text-xs font-semibold text-slate-600">Color</label><input id="color" name="color" value={form.color} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="dimensiones" className="text-xs font-semibold text-slate-600">Dimensiones</label><input id="dimensiones" name="dimensiones" value={form.dimensiones} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                </>}
+                {form.categoria === "Vehículos" && <>
+                  <div className="flex flex-col"><label htmlFor="placa" className="text-xs font-semibold text-slate-600">Placa</label><input id="placa" name="placa" value={form.placa} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="vin" className="text-xs font-semibold text-slate-600">VIN / chasis</label><input id="vin" name="vin" value={form.vin} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="kilometraje" className="text-xs font-semibold text-slate-600">Kilometraje</label><input id="kilometraje" name="kilometraje" value={form.kilometraje} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                  <div className="flex flex-col"><label htmlFor="tipoCombustible" className="text-xs font-semibold text-slate-600">Tipo de combustible</label><input id="tipoCombustible" name="tipoCombustible" value={form.tipoCombustible} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>
+                </>}
+                {(form.categoria === "Equipo de cómputo" || form.categoria === "Otros activos") && <div className="flex flex-col md:col-span-3"><label htmlFor="caracteristicas" className="text-xs font-semibold text-slate-600">Características / ficha técnica</label><textarea id="caracteristicas" name="caracteristicas" value={form.caracteristicas} onChange={handleChange} rows="3" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div>}
+              </div>
+            </section>
+            <section className="rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
                 <h2 className="text-sm font-bold text-slate-900 tracking-wide">DATOS DE USUARIO</h2>
               </div>
 
@@ -212,7 +312,7 @@ const CrearEquipo = () => {
             </section>
             <section className="rounded-2xl border border-slate-200 overflow-hidden">
               <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
-                <h2 className="text-sm font-bold text-slate-900 tracking-wide">DATOS DE EQUIPO</h2>
+                <h2 className="text-sm font-bold text-slate-900 tracking-wide">DATOS DEL ACTIVO</h2>
               </div>
 
               <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -356,9 +456,16 @@ const CrearEquipo = () => {
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
                   >
                     <option value="">-- Seleccione estado --</option>
-                    <option value="Buen estado">Buen estado</option>
-                    <option value="Inactivo">Reparación</option>
-                    <option value="Obsoleto">Obsoleto</option>
+                    {form.categoria === "Inmuebles" ? <>
+                      <option value="Disponible">Disponible</option>
+                      <option value="Reservada">Reservada</option>
+                      <option value="Vendida">Vendida</option>
+                      <option value="Alquilada">Alquilada</option>
+                    </> : <>
+                      <option value="Buen estado">Buen estado</option>
+                      <option value="Inactivo">Reparación</option>
+                      <option value="Obsoleto">Obsoleto</option>
+                    </>}
                   </select>
                 </div>
 
@@ -462,10 +569,22 @@ const CrearEquipo = () => {
                 disabled={saving}
                 className="rounded-xl bg-blue-900 text-white px-6 py-3 text-sm font-semibold hover:bg-blue-950 disabled:opacity-60"
               >
-                {saving ? "Guardando..." : "Crear Equipo"}
+                {saving ? "Guardando..." : "Crear activo"}
               </button>
             </div>
           </form>
+          {receipt && (
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="font-bold text-emerald-900">Activo ingresado correctamente</h2>
+                <p className="text-sm text-emerald-800">La recepción está lista para imprimir o descargar como PDF desde el diálogo de impresión.</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button type="button" onClick={imprimirRecepcion} className="rounded-xl bg-emerald-700 text-white px-4 py-2.5 text-sm font-semibold hover:bg-emerald-800">Imprimir recepción</button>
+                <button type="button" onClick={() => navigate("/equipos/inventario")} className="rounded-xl border border-emerald-300 bg-white text-emerald-900 px-4 py-2.5 text-sm font-semibold hover:bg-emerald-100">Ver inventario</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

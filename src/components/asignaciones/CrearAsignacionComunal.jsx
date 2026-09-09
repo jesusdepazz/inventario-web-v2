@@ -100,7 +100,7 @@ export default function CrearAsignacionComunal() {
     }
   };
 
-  const totalEquipos = useMemo(() => equiposAsignados.length, [equiposAsignados]);
+  const totalActivos = useMemo(() => equiposAsignados.length, [equiposAsignados]);
 
   if (!esAdmin) {
     return (
@@ -128,7 +128,7 @@ export default function CrearAsignacionComunal() {
             </div>
 
             <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs text-slate-700">
-              Equipos: <b>{totalEquipos}</b>
+              Activos: <b>{totalActivos}</b>
             </span>
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function CrearAsignacionComunal() {
 
           <div className="rounded-xl border border-slate-200 bg-white">
             <div className="px-4 py-3 border-b border-slate-100">
-              <h2 className="text-sm font-semibold text-slate-900">Equipos</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Activos</h2>
               <p className="text-xs text-slate-600">Agregá por codificación.</p>
             </div>
 
@@ -279,7 +279,7 @@ export default function CrearAsignacionComunal() {
 
             <div className="flex items-center justify-between gap-3 pt-2">
               <div className="text-sm text-slate-700">
-                Se asignarán <b>{totalEquipos}</b> equipos a esta ubicación.
+                Se asignarán <b>{totalActivos}</b> activos a esta ubicación.
               </div>
 
               <div className="flex gap-2">
@@ -294,7 +294,7 @@ export default function CrearAsignacionComunal() {
                 <button
                   type="button"
                   onClick={guardarAsignacion}
-                  disabled={saving || totalEquipos === 0}
+                  disabled={saving || totalActivos === 0}
                   className="rounded-lg bg-blue-900 text-white px-4 py-2 text-sm font-semibold hover:bg-blue-950 disabled:opacity-60"
                 >
                   {saving ? "Guardando..." : "Asignar ubicación"}

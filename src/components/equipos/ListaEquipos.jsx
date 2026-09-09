@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import EquiposService from "../../services/EquiposServices";
 import { exportarExcel } from "../../services/ExportExcel";
+import { CATEGORIAS_ACTIVOS } from "./catalogoActivos";
 
 const camposFiltro = [
+  { label: "Categoría", value: "categoria", tipo: "select", opciones: CATEGORIAS_ACTIVOS.map(({ label }) => label) },
+  { label: "Familia", value: "familia", tipo: "texto" },
   { label: "Codificación", value: "codificacion", tipo: "texto" },
   { label: "Factura", value: "factura", tipo: "texto" },
   { label: "Marca", value: "marca", tipo: "texto" },
@@ -35,6 +38,8 @@ const ListaEquipos = () => {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState([]);
+  const [agruparFamilia, setAgruparFamilia] = useState(true);
+  const categoriaUrl = new URLSearchParams(window.location.search).get("categoria") || "";
 
   useEffect(() => {
     const cargarEquipos = async () => {
@@ -78,9 +83,12 @@ const ListaEquipos = () => {
   };
 
   const resultadosFiltrados = useMemo(() => {
-    if (filtros.length === 0) return equipos;
+    const equiposPorCategoria = categoriaUrl
+      ? equipos.filter((equipo) => equipo.categoria === categoriaUrl)
+      : equipos;
+    if (filtros.length === 0) return equiposPorCategoria;
 
-    return equipos.filter((equipo) =>
+    return equiposPorCategoria.filter((equipo) =>
       filtros.every(({ campo, valor }) => {
         if (!valor?.toString().trim()) return true;
 
@@ -102,9 +110,19 @@ const ListaEquipos = () => {
         return valorCampo.includes(valor.toLowerCase());
       })
     );
-  }, [equipos, filtros]);
+  }, [categoriaUrl, equipos, filtros]);
 
   const limpiarFiltros = () => setFiltros([]);
+
+  const equiposVisibles = useMemo(() => {
+    if (!agruparFamilia) return resultadosFiltrados;
+    return [...resultadosFiltrados].sort((a, b) =>
+      `${a.categoria || "Sin categoría"}-${a.familia || "Sin familia"}`.localeCompare(
+        `${b.categoria || "Sin categoría"}-${b.familia || "Sin familia"}`,
+        "es"
+      )
+    );
+  }, [agruparFamilia, resultadosFiltrados]);
 
   const exportar = () => {
     exportarExcel(resultadosFiltrados, "Equipos_Filtrados");
@@ -116,9 +134,9 @@ const ListaEquipos = () => {
         <div className="p-6 border-b border-slate-100">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">Inventario de equipos</h1>
+              <h1 className="text-2xl font-extrabold text-slate-900">Inventario de activos</h1>
               <p className="text-sm text-slate-500">
-                Filtrá por múltiples campos y exportá a Excel.
+                {categoriaUrl ? `Apartado: ${categoriaUrl}` : "Clasificación, familias, control físico y exportación."}
               </p>
             </div>
 
@@ -127,7 +145,7 @@ const ListaEquipos = () => {
                 Total: {equipos.length}
               </span>
               <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-slate-50 text-slate-700">
-                Mostrando: {resultadosFiltrados.length}
+                Mostrando: {equiposVisibles.length}
               </span>
               <button
                 onClick={exportar}
@@ -206,6 +224,10 @@ const ListaEquipos = () => {
             >
               Limpiar filtros
             </button>
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 px-2 py-2.5">
+              <input type="checkbox" checked={agruparFamilia} onChange={(e) => setAgruparFamilia(e.target.checked)} className="h-4 w-4 accent-blue-700" />
+              Agrupar por familia
+            </label>
           </div>
         </div>
 
@@ -220,7 +242,7 @@ const ListaEquipos = () => {
                   <th colSpan="3" className="px-3 py-2 border bg-blue-800">
                     DATOS DE USUARIO
                   </th>
-                  <th colSpan="8" className="px-3 py-2 border bg-blue-900">
+                  <th colSpan="10" className="px-3 py-2 border bg-blue-900">
                     DATOS DEL EQUIPO
                   </th>
                   <th colSpan="1" className="px-3 py-2 border bg-blue-600">
@@ -243,6 +265,8 @@ const ListaEquipos = () => {
                   <th className="px-3 py-2 border bg-blue-800 min-w-[220px]">Asignado a</th>
 
                   <th className="px-3 py-2 border bg-blue-900 min-w-[180px]">Codificación</th>
+                  <th className="px-3 py-2 border bg-blue-900 min-w-[160px]">Categoría</th>
+                  <th className="px-3 py-2 border bg-blue-900 min-w-[180px]">Familia</th>
                   <th className="px-3 py-2 border bg-blue-900 min-w-[140px]">Estado</th>
                   <th className="px-3 py-2 border bg-blue-900 min-w-[140px]">Equipo</th>
                   <th className="px-3 py-2 border bg-blue-900 min-w-[140px]">Marca</th>
@@ -261,16 +285,17 @@ const ListaEquipos = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="19" className="text-center p-6 text-gray-500">
+                    <td colSpan="21" className="text-center p-6 text-gray-500">
                       Cargando equipos...
                     </td>
                   </tr>
-                ) : resultadosFiltrados.length > 0 ? (
-                  resultadosFiltrados.map((equipo, index) => (
-                    <tr
-                      key={equipo.id ?? index}
-                      className="text-center even:bg-gray-50 hover:bg-blue-50"
-                    >
+                ) : equiposVisibles.length > 0 ? (
+                  equiposVisibles.map((equipo, index) => (
+                    <React.Fragment key={equipo.id ?? index}>
+                    {agruparFamilia && (index === 0 || equiposVisibles[index - 1].familia !== equipo.familia || equiposVisibles[index - 1].categoria !== equipo.categoria) && (
+                      <tr className="bg-slate-100 text-left"><td colSpan="21" className="px-3 py-2 border font-bold text-slate-700">{equipo.categoria || "Sin categoría"} / {equipo.familia || "Sin familia"}</td></tr>
+                    )}
+                    <tr className="text-center even:bg-gray-50 hover:bg-blue-50">
                       <td className="px-3 py-2 border min-w-[80px]">{index + 1}</td>
 
                       <td className="px-3 py-2 border min-w-[160px] break-words">
@@ -317,6 +342,8 @@ const ListaEquipos = () => {
                         {equipo.codificacion || "-"}
                       </td>
 
+                      <td className="px-3 py-2 border min-w-[160px]">{equipo.categoria || "-"}</td>
+                      <td className="px-3 py-2 border min-w-[180px]">{equipo.familia || "-"}</td>
                       <td className="px-3 py-2 border min-w-[140px]">{equipo.estado || "-"}</td>
                       <td className="px-3 py-2 border min-w-[140px]">{equipo.tipoEquipo || "-"}</td>
                       <td className="px-3 py-2 border min-w-[140px]">{equipo.marca || "-"}</td>
@@ -335,10 +362,11 @@ const ListaEquipos = () => {
                         {equipo.observaciones || "-"}
                       </td>
                     </tr>
+                    </React.Fragment>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="19" className="text-center p-6 text-gray-500">
+                    <td colSpan="21" className="text-center p-6 text-gray-500">
                       No se encontraron equipos.
                     </td>
                   </tr>

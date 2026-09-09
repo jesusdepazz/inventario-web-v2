@@ -173,7 +173,7 @@ export default function TrasladosLista() {
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Entrega</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Recibe</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Equipos</th>
+                  <th className="px-4 py-3 font-bold whitespace-nowrap">Activos</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Motivo</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Desde</th>
                   <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Hasta</th>

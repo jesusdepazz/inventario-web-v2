@@ -17,6 +17,10 @@ import {
   FaIdCard,
   FaTimes,
   FaMapMarkerAlt,
+  FaBuilding,
+  FaChair,
+  FaCar,
+  FaBoxes,
 } from "react-icons/fa";
 
 const navLinkClass = (active) =>
@@ -47,7 +51,8 @@ const modalCancelBtnClass =
 export default function Sidebar({ open = false, onClose = () => {} }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [equiposOpen, setEquiposOpen] = useState(false);
+  const [activosOpen, setActivosOpen] = useState(false);
+  const [categoriaActiva, setCategoriaActiva] = useState("");
   const [asignacionesOpen, setAsignacionesOpen] = useState(false);
   const [mantenimientosOpen, setMantenimientosOpen] = useState(false);
   const [formatosOpen, setFormatosOpen] = useState(false);
@@ -173,29 +178,49 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
           </Link>
 
           <div>
-            <button onClick={() => setEquiposOpen(!equiposOpen)} className={categoryButtonClass}>
+            <button onClick={() => setActivosOpen(!activosOpen)} className={categoryButtonClass}>
               <span className="flex items-center gap-3">
-                <FaLaptop /> Equipos
+                <FaLaptop /> Activos
               </span>
-              {equiposOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
+              {activosOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
             </button>
-            <div className={`ml-6 mt-1 flex flex-col gap-2 overflow-hidden transition-all duration-500 ${equiposOpen ? "max-h-40" : "max-h-0"}`}>
+            <div className={`ml-6 mt-1 flex flex-col gap-2 overflow-hidden transition-all duration-500 ${activosOpen ? "max-h-96" : "max-h-0"}`}>
               <Link to="/equipos/inventario" className={subLinkClass(isActive("/equipos/inventario"))}>
-                <FaClipboardList /> Inventario
+                <FaClipboardList /> Inventario general
               </Link>
-              {rol === "Administrador" && (
-                <>
-                  <Link to="/equipos/crear" className={subLinkClass(isActive("/equipos/crear"))}>
-                    <FaUpload /> Ingresar
-                  </Link>
-                  <Link to="/equipos/editar" className={subLinkClass(isActive("/equipos/editar"))}>
-                    <FaEdit /> Editar
-                  </Link>
-                  <Link to="/equipos/eliminar" className={subLinkClass(isActive("/equipos/eliminar"))}>
-                    <FaTrash /> Eliminar
-                  </Link>
-                </>
-              )}
+              {[
+                { nombre: "Inmuebles", icono: <FaBuilding /> },
+                { nombre: "Mobiliario y equipo", icono: <FaChair /> },
+                { nombre: "Equipo de cómputo", icono: <FaLaptop /> },
+                { nombre: "Vehículos", icono: <FaCar /> },
+                { nombre: "Otros activos", icono: <FaBoxes /> },
+              ].map((categoria) => {
+                const abierta = categoriaActiva === categoria.nombre;
+                const parametro = encodeURIComponent(categoria.nombre);
+
+                return (
+                  <div key={categoria.nombre}>
+                    <button
+                      type="button"
+                      onClick={() => setCategoriaActiva(abierta ? "" : categoria.nombre)}
+                      className={`${subLinkClass(false)} w-full justify-between text-left`}
+                    >
+                      <span className="flex items-center gap-2">{categoria.icono} {categoria.nombre}</span>
+                      {abierta ? <FaChevronUp className="text-[10px]" /> : <FaChevronDown className="text-[10px]" />}
+                    </button>
+                    {abierta && (
+                      <div className="ml-6 mt-1 flex flex-col gap-1 border-l border-blue-400/30 pl-3">
+                        <Link to={`/equipos/inventario?categoria=${parametro}`} className={subLinkClass(false)}><FaClipboardList /> Inventario</Link>
+                        {rol === "Administrador" && <>
+                          <Link to={`/equipos/crear?categoria=${parametro}`} className={subLinkClass(false)}><FaUpload /> Ingresar</Link>
+                          <Link to={`/equipos/editar?categoria=${parametro}`} className={subLinkClass(false)}><FaEdit /> Editar</Link>
+                          <Link to={`/equipos/eliminar?categoria=${parametro}`} className={subLinkClass(false)}><FaTrash /> Eliminar</Link>
+                        </>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
