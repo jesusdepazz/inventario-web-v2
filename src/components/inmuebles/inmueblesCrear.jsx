@@ -1,47 +1,33 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import UbicacionesService from "../../services/UbicacionesServices";
-import EquiposService from "../../services/EquiposServices";
-import { obtenerCategoria } from "../equipos/catalogoActivos";
+import { toast } from "../../utils/toast";
+import InmueblesService from "../../services/InmueblesServices";
+import { limpiarPayload } from "../../services/payload";
+import { useEmpresa } from "../../context/empresa";
+import useFamilias from "../../hooks/useFamilias";
+import { preguntarImprimirIngreso } from "../../utils/ingresoBodegaPDF";
+import { CAMPOS_INGRESO } from "./config";
 
 export default function InmueblesCrear() {
-  const CATEGORIA = "Inmuebles";
-  const catInfo = obtenerCategoria(CATEGORIA);
+  const familias = useFamilias("Inmuebles");
+  const { empresa } = useEmpresa();
 
   const [form, setForm] = useState({
-    categoria: CATEGORIA,
-    familia: "",
-    descripcionBien: "",
-    ordenCompra: "",
-    factura: "",
-    proveedor: "",
-    fechaIngreso: "",
     codificacion: "",
-    marca: "N/A",
-    modelo: "N/A",
-    serie: "N/A",
-    estado: "",
-    ubicacion: "",
-    comentarios: "",
+    nombreCatalogoActivo: "",
+    descripcion: "",
+    direccion: "",
+    estado: "disponible",
+    numeroOrdenCompra: "",
+    fechaOrdenCompra: "",
+    numeroFacturaElectronica: "",
+    nombreProveedor: "",
+    fechaFactura: "",
+    fichaTecnica: "",
   });
 
-  const [ubicaciones, setUbicaciones] = useState([]);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const cargarUbicaciones = async () => {
-      try {
-        const res = await UbicacionesService.obtenerTodas();
-        let lista = Array.isArray(res.data) ? res.data : res.data?.$values || [];
-        setUbicaciones(lista.map((u) => u.nombre));
-      } catch (error) {
-        console.error("Error al cargar ubicaciones:", error);
-      }
-    };
-    cargarUbicaciones();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,7 +36,7 @@ export default function InmueblesCrear() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const obligatorios = ["familia", "fechaIngreso", "codificacion", "estado", "ubicacion"];
+    const obligatorios = ["codificacion", "nombreCatalogoActivo", "descripcion", "direccion", "estado"];
     for (const campo of obligatorios) {
       if (!form[campo]) {
         toast.warn(`El campo "${campo}" es obligatorio.`);
@@ -58,16 +44,16 @@ export default function InmueblesCrear() {
       }
     }
 
-    const formData = new FormData();
-    Object.entries(form).forEach(([k, v]) => formData.append(k, v ?? ""));
+    const payload = limpiarPayload({ ...form, empresa }, { fechas: ["fechaOrdenCompra", "fechaFactura"] });
 
     try {
       setSaving(true);
-      await EquiposService.crear(formData);
+      const { data } = await InmueblesService.crear(payload);
       toast.success("Inmueble registrado exitosamente");
-      navigate("/equipos/inventario");
+      preguntarImprimirIngreso({ categoria: "Inmuebles", empresa, activo: data ?? payload, campos: CAMPOS_INGRESO, numero: data?.id });
+      navigate("/activos/inmuebles/inventario");
     } catch (error) {
-      toast.error(error.response?.data?.title || "Error al guardar el inmueble");
+      toast.error(error.response?.data?.mensaje || "Error al guardar el inmueble");
     } finally {
       setSaving(false);
     }
@@ -78,7 +64,7 @@ export default function InmueblesCrear() {
       <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
           <h1 className="text-xl font-bold text-slate-900">Registrar Inmueble</h1>
-          <p className="mt-1 text-sm text-slate-600">Registro de bienes raíces y propiedades de la organización.</p>
+          <p className="mt-1 text-sm text-slate-600">Registro de bienes raíces y propiedades de la organización · Empresa: <span className="font-semibold">{empresa}</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 p-6">
@@ -86,64 +72,49 @@ export default function InmueblesCrear() {
             <div className="flex flex-col md:col-span-2">
               <label className="text-xs font-semibold text-slate-700">Familia *</label>
               <select
-                name="familia"
-                value={form.familia}
+                name="nombreCatalogoActivo"
+                value={form.nombreCatalogoActivo}
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               >
                 <option value="">-- Seleccione tipo de inmueble --</option>
-                {catInfo?.familias.map((f) => (
+                {familias.map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
             </div>
 
             <div className="flex flex-col md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Descripción / Detalles de la Propiedad</label>
+              <label className="text-xs font-semibold text-slate-700">Codificación * <span className="font-normal text-slate-500">(se usa en hojas, traslados, pases y bajas)</span></label>
               <input
-                name="descripcionBien"
-                value={form.descripcionBien}
+                name="codificacion"
+                value={form.codificacion}
+                onChange={handleChange}
+                placeholder="Ej. INM-001"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col md:col-span-2">
+              <label className="text-xs font-semibold text-slate-700">Descripción *</label>
+              <input
+                name="descripcion"
+                value={form.descripcion}
                 onChange={handleChange}
                 placeholder="Ej. Oficina central piso 3 / Terreno zona industrial"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Codificación *</label>
+            <div className="flex flex-col md:col-span-2">
+              <label className="text-xs font-semibold text-slate-700">Dirección *</label>
               <input
-                name="codificacion"
-                value={form.codificacion}
-                onChange={handleChange}
-                placeholder="Código catastral o interno"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Fecha de Registro / Adquisición *</label>
-              <input
-                type="date"
-                name="fechaIngreso"
-                value={form.fechaIngreso}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Ubicación *</label>
-              <input
-                list="ubicaciones-list"
-                name="ubicacion"
-                value={form.ubicacion}
+                name="direccion"
+                value={form.direccion}
                 onChange={handleChange}
                 placeholder="Dirección o zona"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
-              <datalist id="ubicaciones-list">
-                {ubicaciones.map((u, i) => <option key={i} value={u} />)}
-              </datalist>
             </div>
 
             <div className="flex flex-col">
@@ -154,39 +125,71 @@ export default function InmueblesCrear() {
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               >
-                <option value="">-- Seleccione estado --</option>
-                <option value="En uso">En uso</option>
-                <option value="Disponible">Disponible</option>
-                <option value="En mantenimiento">En mantenimiento</option>
+                <option value="disponible">Disponible</option>
+                <option value="reservada">Reservada</option>
+                <option value="vendida">Vendida</option>
+                <option value="alquilada">Alquilada</option>
               </select>
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Número de Escritura / Factura</label>
+              <label className="text-xs font-semibold text-slate-700">Número de Orden de Compra</label>
               <input
-                name="factura"
-                value={form.factura}
+                name="numeroOrdenCompra"
+                value={form.numeroOrdenCompra}
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Vendedor / Proveedor</label>
+              <label className="text-xs font-semibold text-slate-700">Fecha de Orden de Compra</label>
               <input
-                name="proveedor"
-                value={form.proveedor}
+                type="date"
+                name="fechaOrdenCompra"
+                value={form.fechaOrdenCompra}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Número de Factura Electrónica</label>
+              <input
+                name="numeroFacturaElectronica"
+                value={form.numeroFacturaElectronica}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Fecha de Factura</label>
+              <input
+                type="date"
+                name="fechaFactura"
+                value={form.fechaFactura}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Nombre del Proveedor</label>
+              <input
+                name="nombreProveedor"
+                value={form.nombreProveedor}
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
             </div>
 
             <div className="flex flex-col md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Comentarios Adicionales</label>
+              <label className="text-xs font-semibold text-slate-700">Ficha Técnica</label>
               <textarea
-                name="comentarios"
+                name="fichaTecnica"
                 rows="3"
-                value={form.comentarios}
+                value={form.fichaTecnica}
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />

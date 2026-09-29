@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import AsignacionesService from "../../services/AsignacionesServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
 
 export default function EliminarAsignacion() {
   const [asignaciones, setAsignaciones] = useState([]);
@@ -118,68 +119,58 @@ export default function EliminarAsignacion() {
           </div>
         </div>
         <div className="px-6 py-5">
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <div className="max-h-[55vh] overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                  <tr className="text-left text-slate-700">
-                    <th className="px-4 py-3 font-semibold w-16">#</th>
-                    <th className="px-4 py-3 font-semibold">Código</th>
-                    <th className="px-4 py-3 font-semibold">Nombre</th>
-                    <th className="px-4 py-3 font-semibold">Departamento</th>
-                    <th className="px-4 py-3 font-semibold">Puesto</th>
-                    <th className="px-4 py-3 font-semibold">Equipo</th>
-                    <th className="px-4 py-3 font-semibold">Fecha</th>
-                    <th className="px-4 py-3 font-semibold w-28 text-center">Acción</th>
+          <TablaContenedor className="max-h-[55vh]">
+              <Tabla>
+                <THead>
+                  <tr>
+                    <Th className="w-16">#</Th>
+                    <Th>Código</Th>
+                    <Th>Nombre</Th>
+                    <Th>Departamento</Th>
+                    <Th>Puesto</Th>
+                    <Th>Equipo</Th>
+                    <Th>Fecha</Th>
+                    <Th className="w-28 text-center">Acción</Th>
                   </tr>
-                </thead>
+                </THead>
 
-                <tbody className="divide-y divide-slate-100">
+                <TBody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                        Cargando asignaciones...
-                      </td>
-                    </tr>
+                    <TrCargando colSpan={8} />
                   ) : paginadas.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                        No hay asignaciones registradas.
-                      </td>
-                    </tr>
+                    <TrVacia colSpan={8}>No hay asignaciones registradas.</TrVacia>
                   ) : (
                     paginadas.map((a, idx) => (
-                      <tr key={a.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-600">
+                      <Tr key={a.id} index={idx}>
+                        <Td>
                           {(pageSafe - 1) * pageSize + idx + 1}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-slate-900">
+                        </Td>
+                        <Td destacado>
                           {a.codigoEmpleado}
-                        </td>
-                        <td className="px-4 py-3 text-slate-800">{a.nombreEmpleado}</td>
-                        <td className="px-4 py-3 text-slate-700">{a.departamento}</td>
-                        <td className="px-4 py-3 text-slate-700">{a.puesto}</td>
-                        <td className="px-4 py-3 text-slate-700">{a.codificacionEquipo}</td>
-                        <td className="px-4 py-3 text-slate-700">
+                        </Td>
+                        <Td>{a.nombreEmpleado}</Td>
+                        <Td>{a.departamento}</Td>
+                        <Td>{a.puesto}</Td>
+                        <Td>{a.codificacionEquipo}</Td>
+                        <Td className="whitespace-nowrap">
                           {a.fechaAsignacion
                             ? new Date(a.fechaAsignacion).toLocaleDateString()
                             : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center">
+                        </Td>
+                        <Td className="text-center">
                           <button
                             onClick={() => eliminarAsignacion(a.id)}
                             className="rounded-lg bg-red-600 text-white px-3 py-2 text-xs font-semibold hover:bg-red-700 transition"
                           >
                             Eliminar
                           </button>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))
                   )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </TBody>
+              </Tabla>
+          </TablaContenedor>
           <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <div className="text-sm text-slate-600">
               Página <b>{pageSafe}</b> de <b>{totalPages}</b> ·{" "}

@@ -1,7 +1,9 @@
 import apiClient from "./ApiClient";
+import { subirExcel } from "./excelUpload";
 
 const EquiposService = {
-  obtenerEquipos: () => apiClient.get("/equipos"),
+  // params opcionales: { empresa }
+  obtenerEquipos: (params = {}) => apiClient.get("/equipos", { params }),
 
   obtenerPorId: (id) => apiClient.get(`/equipos/${id}`),
 
@@ -21,6 +23,8 @@ const EquiposService = {
     apiClient.put(`/equipos/${id}`, data),
 
   eliminar: (id) => apiClient.delete(`/equipos/${id}`),
+
+  importarExcel: (file, empresa) => subirExcel("/equipos/importar-excel", file, empresa),
 };
 
 export default EquiposService;

@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import EquiposService from "../../services/EquiposServices";
+import { toast } from "../../utils/toast";
+import { useEmpresa } from "../../context/empresa";
+import OtrosActivosService from "../../services/OtrosActivosServices";
+import { aLista } from "../../services/payload";
+import { mensajeError } from "./campos";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
 
 export default function EliminarOtrosActivos() {
-  const [equipos, setEquipos] = useState([]);
+  const { empresa } = useEmpresa();
+  const [activos, setActivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const cargar = async () => {
     try {
       setLoading(true);
-      const res = await EquiposService.obtenerEquipos();
-      const lista = Array.isArray(res.data) ? res.data : res.data?.$values ?? [];
-      setEquipos(lista.filter((e) => e.categoria === "Otros activos"));
+      const res = await OtrosActivosService.obtenerTodos({ empresa });
+      setActivos(aLista(res.data));
     } catch (error) {
       console.error(error);
       toast.error("Error al cargar registros");
@@ -23,61 +28,80 @@ export default function EliminarOtrosActivos() {
 
   useEffect(() => {
     cargar();
-  }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa]);
 
   const eliminar = async (id) => {
     if (!window.confirm("¿Desea eliminar este activo?")) return;
     try {
       setDeletingId(id);
-      await EquiposService.eliminar(id);
+      await OtrosActivosService.eliminar(id);
       toast.success("Activo eliminado");
       await cargar();
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo eliminar");
+      toast.error(mensajeError(error, "No se pudo eliminar"));
     } finally {
       setDeletingId(null);
     }
   };
 
+  const eliminarTodos = async () => {
+    if (!window.confirm(`¿Eliminar los ${activos.length} otros activos? Esta acción no se puede deshacer.`)) return;
+    try {
+      setDeletingAll(true);
+      const { data } = await OtrosActivosService.eliminarTodos();
+      toast.success(data?.mensaje || "Todos los activos fueron eliminados");
+      await cargar();
+    } catch (error) {
+      console.error(error);
+      toast.error(mensajeError(error, "No se pudieron eliminar los activos"));
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col p-4">
-      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
+      <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
         <h1 className="text-2xl font-extrabold text-slate-900">Eliminar otros activos</h1>
+        <button onClick={eliminarTodos} disabled={deletingAll || activos.length === 0} className="rounded-xl border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+          {deletingAll ? "Eliminando..." : "Eliminar todos"}
+        </button>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-100 text-left text-slate-700">
+      <TablaContenedor className="flex-1">
+        <Tabla>
+          <THead>
             <tr>
-              <th className="px-4 py-3">Codificación</th>
-              <th className="px-4 py-3">Familia</th>
-              <th className="px-4 py-3">Marca</th>
-              <th className="px-4 py-3">Modelo</th>
-              <th className="px-4 py-3">Ubicación</th>
-              <th className="px-4 py-3">Acción</th>
+              <Th>Codificación</Th>
+              <Th>Familia</Th>
+              <Th>Marca</Th>
+              <Th>Modelo</Th>
+              <Th>Ubicación</Th>
+              <Th>Acción</Th>
             </tr>
-          </thead>
-          <tbody>
+          </THead>
+          <TBody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Cargando...</td></tr>
-            ) : equipos.length > 0 ? (
-              equipos.map((equipo) => (
-                <tr key={equipo.id} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-semibold">{equipo.codificacion || "-"}</td>
-                  <td className="px-4 py-3">{equipo.familia || "-"}</td>
-                  <td className="px-4 py-3">{equipo.marca || "-"}</td>
-                  <td className="px-4 py-3">{equipo.modelo || "-"}</td>
-                  <td className="px-4 py-3">{equipo.ubicacion || "-"}</td>
-                  <td className="px-4 py-3"><button onClick={() => eliminar(equipo.id)} disabled={deletingId === equipo.id} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{deletingId === equipo.id ? "Eliminando..." : "Eliminar"}</button></td>
-                </tr>
+              <TrCargando colSpan={6} />
+            ) : activos.length > 0 ? (
+              activos.map((a, i) => (
+                <Tr key={a.id} index={i}>
+                  <Td destacado>{a.codificacion || "-"}</Td>
+                  <Td>{a.tipoEquipo || "-"}</Td>
+                  <Td>{a.marca || "-"}</Td>
+                  <Td>{a.modelo || "-"}</Td>
+                  <Td>{a.ubicacion || "-"}</Td>
+                  <Td><button onClick={() => eliminar(a.id)} disabled={deletingId === a.id} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{deletingId === a.id ? "Eliminando..." : "Eliminar"}</button></Td>
+                </Tr>
               ))
             ) : (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No hay activos para eliminar.</td></tr>
+              <TrVacia colSpan={6}>No hay activos para eliminar.</TrVacia>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+        </Tabla>
+      </TablaContenedor>
     </div>
   );
 }

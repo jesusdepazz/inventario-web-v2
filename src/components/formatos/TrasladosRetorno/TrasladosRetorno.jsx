@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { toast } from "react-toastify";
+import { toast } from "../../../utils/toast";
 import TrasladosRetornoService from "../../../services/TrasladosRetornoService";
 import EmpleadosService from "../../../services/EmpleadosServices";
-import EquiposService from "../../../services/EquiposServices";
+import ActivosService from "../../../services/ActivosServices";
 import UbicacionesService from "../../../services/UbicacionesServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td } from "../../ui/Tabla";
 
 const CrearTrasladoRetorno = () => {
   const initialFormData = {
@@ -88,7 +89,7 @@ const CrearTrasladoRetorno = () => {
       return;
     }
 
-    EquiposService.obtenerPorCodificacion(codigo)
+    ActivosService.obtenerPorCodificacion(codigo)
       .then((res) => {
         const cod = res.data?.codificacion ?? "";
 
@@ -387,33 +388,33 @@ const CrearTrasladoRetorno = () => {
               </div>
 
               {formData.empleados.length > 0 && (
-                <div className="mt-4 overflow-x-auto bg-white border border-gray-200 rounded-xl">
-                  <table className="min-w-[900px] w-full text-sm">
-                    <thead className="bg-blue-800 text-white">
+                <TablaContenedor className="mt-4">
+                  <Tabla className="min-w-[900px]">
+                    <THead>
                       <tr>
-                        <th className="p-3 text-left">Código</th>
-                        <th className="p-3 text-left">Nombre</th>
-                        <th className="p-3 text-left">Puesto</th>
-                        <th className="p-3 text-left">Departamento</th>
-                        <th className="p-3 text-center">Acción</th>
+                        <Th>Código</Th>
+                        <Th>Nombre</Th>
+                        <Th>Puesto</Th>
+                        <Th>Departamento</Th>
+                        <Th className="text-center">Acción</Th>
                       </tr>
-                    </thead>
-                    <tbody>
+                    </THead>
+                    <TBody>
                       {formData.empleados.map((emp, i) => (
-                        <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                          <td className="border-t border-gray-200 p-3">
+                        <Tr key={i} index={i}>
+                          <Td destacado>
                             {emp.empleadoId}
-                          </td>
-                          <td className="border-t border-gray-200 p-3">
+                          </Td>
+                          <Td>
                             {emp.nombre}
-                          </td>
-                          <td className="border-t border-gray-200 p-3">
+                          </Td>
+                          <Td>
                             {emp.puesto}
-                          </td>
-                          <td className="border-t border-gray-200 p-3">
+                          </Td>
+                          <Td>
                             {emp.departamento}
-                          </td>
-                          <td className="border-t border-gray-200 p-3 text-center">
+                          </Td>
+                          <Td className="text-center">
                             <button
                               type="button"
                               onClick={() => handleQuitarEmpleado(i)}
@@ -421,12 +422,12 @@ const CrearTrasladoRetorno = () => {
                             >
                               Quitar
                             </button>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </TBody>
+                  </Tabla>
+                </TablaContenedor>
               )}
             </div>
             )}
@@ -453,27 +454,27 @@ const CrearTrasladoRetorno = () => {
               </div>
 
               {formData.equipos.length > 0 && (
-                <div className="mt-4 overflow-x-auto bg-white border border-gray-200 rounded-xl">
-                  <table className="min-w-[900px] w-full text-sm">
-                    <thead className="bg-blue-800 text-white">
+                <TablaContenedor className="mt-4">
+                  <Tabla className="min-w-[900px]">
+                    <THead>
                       <tr>
-                        <th className="p-3 text-left">Equipo</th>
-                        <th className="p-3 text-left">Descripción</th>
-                        <th className="p-3 text-left">Marca</th>
-                        <th className="p-3 text-left">Modelo</th>
-                        <th className="p-3 text-left">Serie</th>
-                        <th className="p-3 text-center">Acción</th>
+                        <Th>Equipo</Th>
+                        <Th>Descripción</Th>
+                        <Th>Marca</Th>
+                        <Th>Modelo</Th>
+                        <Th>Serie</Th>
+                        <Th className="text-center">Acción</Th>
                       </tr>
-                    </thead>
-                    <tbody>
+                    </THead>
+                    <TBody>
                       {formData.equipos.map((eq, i) => (
-                        <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                          <td className="border-t border-gray-200 p-3">{eq.equipo}</td>
-                          <td className="border-t border-gray-200 p-3">{eq.descripcionEquipo}</td>
-                          <td className="border-t border-gray-200 p-3">{eq.marca}</td>
-                          <td className="border-t border-gray-200 p-3">{eq.modelo}</td>
-                          <td className="border-t border-gray-200 p-3">{eq.serie}</td>
-                          <td className="border-t border-gray-200 p-3 text-center">
+                        <Tr key={i} index={i}>
+                          <Td destacado>{eq.equipo}</Td>
+                          <Td>{eq.descripcionEquipo}</Td>
+                          <Td>{eq.marca}</Td>
+                          <Td>{eq.modelo}</Td>
+                          <Td>{eq.serie}</Td>
+                          <Td className="text-center">
                             <button
                               type="button"
                               onClick={() => handleQuitarEquipo(i)}
@@ -481,12 +482,12 @@ const CrearTrasladoRetorno = () => {
                             >
                               Quitar
                             </button>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </TBody>
+                  </Tabla>
+                </TablaContenedor>
               )}
             </div>
 

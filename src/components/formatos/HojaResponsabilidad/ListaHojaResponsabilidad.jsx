@@ -5,6 +5,8 @@ import generarPDFHojaMovil from "./HojaResponsabilidadMovilPdf";
 import generarPDFHojaExterno from "./HojaResponsabilidadExternoPDF";
 import { useNavigate } from "react-router-dom";
 import { getRol } from "../../../services/auth"
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../../ui/Tabla";
+import Badge from "../../ui/Badge";
 
 const lowerFirst = (key) => key.charAt(0).toLowerCase() + key.slice(1);
 
@@ -336,30 +338,30 @@ const ListaHojasResponsabilidad = () => {
         </div>
 
         <div className="flex-1 min-h-0 p-6">
-          <div className="h-full overflow-auto rounded-2xl border border-slate-200">
-            <table className="min-w-[1700px] w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-blue-900 text-white">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Hoja No</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Código</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Responsable</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Puesto</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Departamento</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Jefe inmediato</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Estado</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha solvencia</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Observaciones</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Tipo</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap text-center">Acciones</th>
+          <TablaContenedor className="h-full">
+            <Tabla className="min-w-[1700px]">
+              <THead>
+                <tr>
+                  <Th>Hoja No</Th>
+                  <Th>Fecha</Th>
+                  <Th>Código</Th>
+                  <Th>Responsable</Th>
+                  <Th>Puesto</Th>
+                  <Th>Departamento</Th>
+                  <Th>Jefe inmediato</Th>
+                  <Th>Ubicación</Th>
+                  <Th>Estado</Th>
+                  <Th>Fecha solvencia</Th>
+                  <Th>Observaciones</Th>
+                  <Th>Tipo</Th>
+                  <Th className="text-center">Acciones</Th>
                   {esAdmin && (
-                    <th className="px-4 py-3 font-bold whitespace-nowrap text-center">Editar</th>
+                    <Th className="text-center">Editar</Th>
                   )}
                 </tr>
-              </thead>
+              </THead>
 
-              <tbody className="bg-white">
+              <TBody>
                 {hojasFiltradas.length > 0 ? (
                   hojasFiltradas.map((hoja, idx) => {
                     const emp0 = hoja?.empleados?.[0] ?? hoja?.empleados?.$values?.[0];
@@ -382,79 +384,69 @@ const ListaHojasResponsabilidad = () => {
                       : "-";
 
                     return (
-                      <tr
+                      <Tr
                         key={hoja?.id ?? hoja?.hojaNo ?? idx}
-                        className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                        index={idx}
                       >
-                        <td className="px-4 py-4 border-t border-slate-200 align-top font-semibold text-slate-900 whitespace-nowrap">
+                        <Td destacado className="align-top whitespace-nowrap">
                           {hoja?.hojaNo ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                        <Td className="align-top whitespace-nowrap">
                           {fechaCreacion}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                        <Td className="align-top whitespace-nowrap">
                           {emp0?.empleadoId ?? emp0?.EmpleadoId ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[220px] text-slate-700">
+                        <Td className="align-top min-w-[220px]">
                           {emp0?.nombre ?? emp0?.Nombre ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[200px] text-slate-700">
+                        <Td className="align-top min-w-[200px]">
                           {emp0?.puesto ?? emp0?.Puesto ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[200px] text-slate-700">
+                        <Td className="align-top min-w-[200px]">
                           {emp0?.departamento ?? emp0?.Departamento ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[220px] text-slate-700">
+                        <Td className="align-top min-w-[220px]">
                           {hoja?.jefeInmediato ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[220px] text-slate-700">
+                        <Td className="align-top min-w-[220px]">
                           {eq0?.ubicacion ?? eq0?.Ubicacion ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
-                              hoja?.estado === "Activa"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : hoja?.estado === "Inactiva"
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : "bg-slate-50 text-slate-700 border-slate-200"
-                            }`}
-                          >
-                            {hoja?.estado ?? "-"}
-                          </span>
-                        </td>
+                        <Td className="align-top whitespace-nowrap">
+                          {hoja?.estado ? <Badge>{hoja.estado}</Badge> : "-"}
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                        <Td className="align-top whitespace-nowrap">
                           {fechaSolv}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[320px] break-words text-slate-700">
+                        <Td className="align-top min-w-[320px] break-words">
                           {hoja?.observaciones ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                        <Td className="align-top whitespace-nowrap">
                           {hoja?.tipoHoja ?? "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-slate-200 align-top text-center whitespace-nowrap">
+                        <Td className="align-top text-center whitespace-nowrap">
                           <button
                             onClick={() => handleGenerarPDF(hoja)}
                             className="rounded-xl bg-blue-600 text-white px-4 py-2 text-xs font-semibold hover:bg-blue-700 transition"
                           >
                             PDF
                           </button>
-                        </td>
+                        </Td>
 
                         {esAdmin && (
-                          <td className="px-4 py-4 border-t border-slate-200 align-top text-center whitespace-nowrap">
+                          <Td className="align-top text-center whitespace-nowrap">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => navigate(`/hojas-responsabilidad/editar/${hoja.id}`)}
@@ -469,24 +461,19 @@ const ListaHojasResponsabilidad = () => {
                                 Versiones
                               </button>
                             </div>
-                          </td>
+                          </Td>
                         )}
-                      </tr>
+                      </Tr>
                     );
                   })
                 ) : (
-                  <tr>
-                    <td
-                      colSpan={esAdmin ? 14 : 13}
-                      className="px-6 py-10 text-center text-slate-500"
-                    >
-                      No se encontraron hojas.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={esAdmin ? 14 : 13}>
+                    No se encontraron hojas.
+                  </TrVacia>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
         </div>
 
         <div className="px-6 py-4 border-t border-slate-200 bg-white">
@@ -507,42 +494,36 @@ const ListaHojasResponsabilidad = () => {
             <b>{verVersiones.version ?? 0}</b>
           </p>
 
-          <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-slate-200">
-            <table className="min-w-full text-xs">
-              <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                <tr className="text-left text-slate-700">
-                  <th className="px-3 py-2 font-semibold">Versión</th>
-                  <th className="px-3 py-2 font-semibold">Motivo</th>
-                  <th className="px-3 py-2 font-semibold">Estado</th>
-                  <th className="px-3 py-2 font-semibold">Guardado</th>
-                  <th className="px-3 py-2 font-semibold">Acción</th>
+          <TablaContenedor className="flex-1 min-h-0">
+            <Tabla>
+              <THead>
+                <tr>
+                  <Th>Versión</Th>
+                  <Th>Motivo</Th>
+                  <Th>Estado</Th>
+                  <Th>Guardado</Th>
+                  <Th>Acción</Th>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+              </THead>
+              <TBody>
                 {loadingVersiones ? (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                      Cargando...
-                    </td>
-                  </tr>
+                  <TrCargando colSpan={5} filas={3} />
                 ) : versiones.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                      Todavía no hay versiones anteriores registradas.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={5}>
+                    Todavía no hay versiones anteriores registradas.
+                  </TrVacia>
                 ) : (
-                  versiones.map((v) => {
+                  versiones.map((v, i) => {
                     const datos = parseSnapshot(v.datosJson);
                     return (
-                      <tr key={v.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-semibold text-slate-900">{v.numeroVersion}</td>
-                        <td className="px-3 py-2 text-slate-700">{datos.motivo || "-"}</td>
-                        <td className="px-3 py-2 text-slate-700">{datos.estado || "-"}</td>
-                        <td className="px-3 py-2 text-slate-700">
+                      <Tr key={v.id} index={i}>
+                        <Td destacado>{v.numeroVersion}</Td>
+                        <Td>{datos.motivo || "-"}</Td>
+                        <Td>{datos.estado ? <Badge>{datos.estado}</Badge> : "-"}</Td>
+                        <Td>
                           {v.fechaGuardado ? new Date(v.fechaGuardado).toLocaleString() : "-"}
-                        </td>
-                        <td className="px-3 py-2">
+                        </Td>
+                        <Td>
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
@@ -559,14 +540,14 @@ const ListaHojasResponsabilidad = () => {
                               Eliminar
                             </button>
                           </div>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     );
                   })
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
 
           <div className="mt-4 flex justify-end">
             <button

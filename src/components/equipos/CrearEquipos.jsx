@@ -1,46 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import UbicacionesService from "../../services/UbicacionesServices";
 import EquiposService from "../../services/EquiposServices";
-import { obtenerCategoria } from "./catalogoActivos";
+import { aLista } from "../../services/payload";
+import { useEmpresa } from "../../context/empresa";
+import useFamilias from "../../hooks/useFamilias";
+import { preguntarImprimirIngreso } from "../../utils/ingresoBodegaPDF";
+import FormularioEquipo from "./FormularioEquipo";
+import { CAMPOS_EQUIPO, FORM_EQUIPO_INICIAL, CAMPOS_INGRESO_EQUIPO } from "./camposEquipo";
+
+const CATEGORIA = "Equipo de cómputo";
+
+const mensajeError = (error, fallback) => {
+  const data = error?.response?.data;
+  if (typeof data === "string" && data) return data;
+  return data?.mensaje || data?.title || fallback;
+};
 
 const CrearEquipoComputo = () => {
-  const CATEGORIA = "Equipo de cómputo";
-  const catInfo = obtenerCategoria(CATEGORIA);
-
-  const [form, setForm] = useState({
-    categoria: CATEGORIA,
-    familia: "",
-    descripcionBien: "",
-    ordenCompra: "",
-    factura: "",
-    proveedor: "",
-    fechaIngreso: "",
-    codificacion: "",
-    marca: "",
-    modelo: "",
-    serie: "",
-    estado: "",
-    ubicacion: "",
-    comentarios: "",
-  });
-
+  const familias = useFamilias(CATEGORIA);
+  const { empresa } = useEmpresa();
+  const [form, setForm] = useState(FORM_EQUIPO_INICIAL);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const cargarUbicaciones = async () => {
-      try {
-        const res = await UbicacionesService.obtenerTodas();
-        let lista = Array.isArray(res.data) ? res.data : res.data?.$values || [];
-        setUbicaciones(lista.map((u) => u.nombre));
-      } catch (error) {
-        console.error("Error al cargar ubicaciones:", error);
-      }
-    };
-    cargarUbicaciones();
+    UbicacionesService.obtenerTodas()
+      .then((res) => setUbicaciones(aLista(res.data).map((u) => u.nombre)))
+      .catch((error) => console.error("Error al cargar ubicaciones:", error));
   }, []);
 
   const handleChange = (e) => {
@@ -50,176 +39,57 @@ const CrearEquipoComputo = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const obligatorios = ["familia", "fechaIngreso", "codificacion", "marca", "modelo", "serie", "estado", "ubicacion"];
-    for (const campo of obligatorios) {
-      if (!form[campo]) {
-        toast.warn(`El campo "${campo}" es obligatorio.`);
-        return;
-      }
+    const faltante = CAMPOS_EQUIPO.find((c) => c.requerido && !String(form[c.name] ?? "").trim());
+    if (faltante) {
+      toast.warn(`El campo "${faltante.label}" es obligatorio.`);
+      return;
     }
 
+    // El endpoint recibe [FromForm] EquipoDTO
     const formData = new FormData();
     Object.entries(form).forEach(([k, v]) => formData.append(k, v ?? ""));
+    formData.append("empresa", empresa);
 
     try {
       setSaving(true);
-      await EquiposService.crear(formData);
-      toast.success("Equipo informático registrado exitosamente");
-      navigate("/equipos/inventario");
+      const { data } = await EquiposService.crear(formData);
+      toast.success("Equipo de cómputo registrado exitosamente");
+      preguntarImprimirIngreso({ categoria: CATEGORIA, empresa, activo: { ...form, ...(data ?? {}) }, campos: CAMPOS_INGRESO_EQUIPO });
+      navigate("/activos/equipo-de-computo/inventario");
     } catch (error) {
-      toast.error(error.response?.data?.title || "Error al crear equipo informático");
+      toast.error(mensajeError(error, "Error al crear el equipo de cómputo"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-52px)] bg-slate-50 px-4 py-8 overflow-y-auto">
-      <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="min-h-[calc(100vh-52px)] overflow-y-auto bg-slate-50 px-4 py-8">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
-          <h1 className="text-xl font-bold text-slate-900">Crear Equipo de Cómputo</h1>
-          <p className="mt-1 text-sm text-slate-600">Hardware informático, servidores y dispositivos periféricos.</p>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Crear equipo de cómputo</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Hardware informático, servidores y dispositivos periféricos · Empresa: <span className="font-semibold text-slate-700">{empresa}</span>
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 p-6">
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div className="flex flex-col md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Tipo de Hardware (Familia) *</label>
-              <select
-                name="familia"
-                value={form.familia}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              >
-                <option value="">-- Seleccione tipo --</option>
-                {catInfo?.familias.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
+          <FormularioEquipo valores={form} onChange={handleChange} familias={familias} ubicaciones={ubicaciones} />
 
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Marca *</label>
-              <input
-                name="marca"
-                value={form.marca}
-                onChange={handleChange}
-                placeholder="Ej. Dell, Lenovo, HP"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Modelo *</label>
-              <input
-                name="modelo"
-                value={form.modelo}
-                onChange={handleChange}
-                placeholder="Ej. ThinkPad L14"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Número de Serie (S/N) *</label>
-              <input
-                name="serie"
-                value={form.serie}
-                onChange={handleChange}
-                placeholder="Serie de fábrica"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Codificación / Asset Tag *</label>
-              <input
-                name="codificacion"
-                value={form.codificacion}
-                onChange={handleChange}
-                placeholder="Etiqueta interna TI"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Ubicación / Usuario asignado *</label>
-              <input
-                list="ubicaciones-list"
-                name="ubicacion"
-                value={form.ubicacion}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-              <datalist id="ubicaciones-list">
-                {ubicaciones.map((u, i) => <option key={i} value={u} />)}
-              </datalist>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Estado *</label>
-              <select
-                name="estado"
-                value={form.estado}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              >
-                <option value="">-- Seleccione estado --</option>
-                <option value="Asignado">Asignado</option>
-                <option value="Disponible">Disponible en Stock</option>
-                <option value="En reparación">En reparación</option>
-                <option value="Obsoleto">Obsoleto / Para baja</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Fecha de Ingreso *</label>
-              <input
-                type="date"
-                name="fechaIngreso"
-                value={form.fechaIngreso}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Proveedor</label>
-              <input
-                name="proveedor"
-                value={form.proveedor}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Especificaciones Técnicas (RAM, Disco, Procesador)</label>
-              <textarea
-                name="comentarios"
-                rows="3"
-                value={form.comentarios}
-                onChange={handleChange}
-                placeholder="Ej. i7 12th Gen, 16GB RAM, 512GB SSD"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate("/inicio")}
-              className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.97]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-950 disabled:opacity-60"
+              className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-950 active:scale-[0.97] disabled:opacity-60"
             >
-              {saving ? "Guardando..." : "Crear equipo TI"}
+              {saving ? "Guardando..." : "Crear equipo"}
             </button>
           </div>
         </form>

@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import EquiposService from "../../services/EquiposServices";
+import { toast } from "../../utils/toast";
+import { useEmpresa } from "../../context/empresa";
+import VehiculosService from "../../services/VehiculosServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
 
 export default function EliminarVehiculos() {
-  const [equipos, setEquipos] = useState([]);
+  const { empresa } = useEmpresa();
+  const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
 
   const cargar = async () => {
     try {
       setLoading(true);
-      const res = await EquiposService.obtenerEquipos();
+      const res = await VehiculosService.obtenerTodos({ empresa });
       const lista = Array.isArray(res.data) ? res.data : res.data?.$values ?? [];
-      setEquipos(lista.filter((e) => e.categoria === "Vehículos"));
+      setVehiculos(lista);
     } catch (error) {
       console.error(error);
       toast.error("Error al cargar vehículos");
@@ -23,13 +26,14 @@ export default function EliminarVehiculos() {
 
   useEffect(() => {
     cargar();
-  }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa]);
 
   const eliminar = async (id) => {
     if (!window.confirm("¿Desea eliminar este vehículo?")) return;
     try {
       setDeletingId(id);
-      await EquiposService.eliminar(id);
+      await VehiculosService.eliminar(id);
       toast.success("Vehículo eliminado");
       await cargar();
     } catch (error) {
@@ -46,38 +50,38 @@ export default function EliminarVehiculos() {
         <h1 className="text-2xl font-extrabold text-slate-900">Eliminar vehículos</h1>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-100 text-left text-slate-700">
+      <TablaContenedor className="flex-1">
+        <Tabla>
+          <THead>
             <tr>
-              <th className="px-4 py-3">Codificación</th>
-              <th className="px-4 py-3">Marca</th>
-              <th className="px-4 py-3">Modelo</th>
-              <th className="px-4 py-3">Placa</th>
-              <th className="px-4 py-3">Ubicación</th>
-              <th className="px-4 py-3">Acción</th>
+              <Th>Codificación</Th>
+              <Th>Marca</Th>
+              <Th>Modelo</Th>
+              <Th>Placa</Th>
+              <Th>Ubicación</Th>
+              <Th>Acción</Th>
             </tr>
-          </thead>
-          <tbody>
+          </THead>
+          <TBody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Cargando...</td></tr>
-            ) : equipos.length > 0 ? (
-              equipos.map((equipo) => (
-                <tr key={equipo.id} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-semibold">{equipo.codificacion || "-"}</td>
-                  <td className="px-4 py-3">{equipo.marca || "-"}</td>
-                  <td className="px-4 py-3">{equipo.modelo || "-"}</td>
-                  <td className="px-4 py-3">{equipo.placa || "-"}</td>
-                  <td className="px-4 py-3">{equipo.ubicacion || "-"}</td>
-                  <td className="px-4 py-3"><button onClick={() => eliminar(equipo.id)} disabled={deletingId === equipo.id} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{deletingId === equipo.id ? "Eliminando..." : "Eliminar"}</button></td>
-                </tr>
+              <TrCargando colSpan={6} />
+            ) : vehiculos.length > 0 ? (
+              vehiculos.map((v, i) => (
+                <Tr key={v.id} index={i}>
+                  <Td destacado>{v.codificacion || "-"}</Td>
+                  <Td>{v.marca || "-"}</Td>
+                  <Td>{v.modelo || "-"}</Td>
+                  <Td>{v.placa || "-"}</Td>
+                  <Td>{v.ubicacion || "-"}</Td>
+                  <Td><button onClick={() => eliminar(v.id)} disabled={deletingId === v.id} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{deletingId === v.id ? "Eliminando..." : "Eliminar"}</button></Td>
+                </Tr>
               ))
             ) : (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No hay vehículos para eliminar.</td></tr>
+              <TrVacia colSpan={6}>No hay vehículos para eliminar.</TrVacia>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+        </Tabla>
+      </TablaContenedor>
     </div>
   );
 }

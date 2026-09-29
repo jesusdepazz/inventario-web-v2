@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import HojasService from "../../../services/HojasServices";
-import EquiposService from "../../../services/EquiposServices";
+import ActivosService from "../../../services/ActivosServices";
 import EmpleadosService from "../../../services/EmpleadosServices";
 import AsignacionesService from "../../../services/AsignacionesServices";
 
@@ -206,7 +206,7 @@ const HojaResponsabilidadEditar = () => {
     if (!equipoCodificacion?.trim()) return;
 
     try {
-      const res = await EquiposService.obtenerPorCodificacion(equipoCodificacion.trim());
+      const res = await ActivosService.obtenerPorCodificacion(equipoCodificacion.trim());
       const eq = res.data;
 
       const equipoDTO = {
@@ -235,7 +235,7 @@ const HojaResponsabilidadEditar = () => {
       setEquipoCodificacion("");
     } catch (err) {
       console.error(err);
-      alert("Equipo no encontrado");
+      alert("Activo no encontrado");
     }
   };
 

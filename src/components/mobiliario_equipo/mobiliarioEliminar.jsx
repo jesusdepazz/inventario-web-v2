@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import EquiposService from "../../services/EquiposServices";
+import { toast } from "../../utils/toast";
+import { useEmpresa } from "../../context/empresa";
+import MobiliarioEquipoService from "../../services/MobiliarioEquipoServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
 
 export default function EliminarMobiliarioEquipo() {
-  const [equipos, setEquipos] = useState([]);
+  const { empresa } = useEmpresa();
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
 
   const cargar = async () => {
     try {
       setLoading(true);
-      const res = await EquiposService.obtenerEquipos();
+      const res = await MobiliarioEquipoService.obtenerTodos({ empresa });
       const lista = Array.isArray(res.data) ? res.data : res.data?.$values ?? [];
-      setEquipos(lista.filter((e) => e.categoria === "Mobiliario y equipo"));
+      setItems(lista);
     } catch (error) {
       console.error(error);
       toast.error("Error al cargar registros");
@@ -23,13 +26,14 @@ export default function EliminarMobiliarioEquipo() {
 
   useEffect(() => {
     cargar();
-  }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa]);
 
   const eliminar = async (id) => {
     if (!window.confirm("¿Desea eliminar este activo?")) return;
     try {
       setDeletingId(id);
-      await EquiposService.eliminar(id);
+      await MobiliarioEquipoService.eliminar(id);
       toast.success("Activo eliminado");
       await cargar();
     } catch (error) {
@@ -46,38 +50,38 @@ export default function EliminarMobiliarioEquipo() {
         <h1 className="text-2xl font-extrabold text-slate-900">Eliminar mobiliario y equipo</h1>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-100 text-left text-slate-700">
+      <TablaContenedor className="flex-1">
+        <Tabla>
+          <THead>
             <tr>
-              <th className="px-4 py-3">Codificación</th>
-              <th className="px-4 py-3">Familia</th>
-              <th className="px-4 py-3">Marca</th>
-              <th className="px-4 py-3">Modelo</th>
-              <th className="px-4 py-3">Ubicación</th>
-              <th className="px-4 py-3">Acción</th>
+              <Th>Codificación</Th>
+              <Th>Familia</Th>
+              <Th>Marca</Th>
+              <Th>Modelo</Th>
+              <Th>Ubicación</Th>
+              <Th>Acción</Th>
             </tr>
-          </thead>
-          <tbody>
+          </THead>
+          <TBody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Cargando...</td></tr>
-            ) : equipos.length > 0 ? (
-              equipos.map((equipo) => (
-                <tr key={equipo.id} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-semibold">{equipo.codificacion || "-"}</td>
-                  <td className="px-4 py-3">{equipo.familia || "-"}</td>
-                  <td className="px-4 py-3">{equipo.marca || "-"}</td>
-                  <td className="px-4 py-3">{equipo.modelo || "-"}</td>
-                  <td className="px-4 py-3">{equipo.ubicacion || "-"}</td>
-                  <td className="px-4 py-3"><button onClick={() => eliminar(equipo.id)} disabled={deletingId === equipo.id} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{deletingId === equipo.id ? "Eliminando..." : "Eliminar"}</button></td>
-                </tr>
+              <TrCargando colSpan={6} />
+            ) : items.length > 0 ? (
+              items.map((item, i) => (
+                <Tr key={item.id} index={i}>
+                  <Td destacado>{item.codificacion || "-"}</Td>
+                  <Td>{item.tipoEquipo || "-"}</Td>
+                  <Td>{item.marca || "-"}</Td>
+                  <Td>{item.modelo || "-"}</Td>
+                  <Td>{item.ubicacion || "-"}</Td>
+                  <Td><button onClick={() => eliminar(item.id)} disabled={deletingId === item.id} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{deletingId === item.id ? "Eliminando..." : "Eliminar"}</button></Td>
+                </Tr>
               ))
             ) : (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No hay activos para eliminar.</td></tr>
+              <TrVacia colSpan={6}>No hay activos para eliminar.</TrVacia>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+        </Tabla>
+      </TablaContenedor>
     </div>
   );
 }

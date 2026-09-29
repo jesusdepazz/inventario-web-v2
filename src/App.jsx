@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import 'react-toastify/dist/ReactToastify.css';
-import { ToastContainer } from 'react-toastify';
+import { Toaster } from "sonner";
 import { useIsAuthenticated } from "@azure/msal-react";
 import Inicio from "./pages/Inicio";
 import Layout from "./components/Layout";
@@ -31,12 +30,9 @@ import {
   InventarioOtrosActivos,
   EditarOtrosActivos,
   EliminarOtrosActivos,
+  CatalogoActivos,
 } from "./modules/activos";
-import {
-  CrearSolicitud,
-  ListaSolicitud,
-  EliminarSolicitud,
-} from "./modules/solicitudes";
+import EmpresaProvider from "./context/EmpresaProvider";
 import {
   BajaActivosForm,
   ListabajaAtivos,
@@ -51,12 +47,6 @@ import {
   CrearTrasladoRetorno,
   TrasladosRetornoLista,
 } from "./modules/formatos";
-import {
-  Suministros,
-  SuministrosInventario,
-  Movimientos,
-  EliminarSuministros,
-} from "./modules/suministros";
 
 function RequireAuth({ children }) {
   const isAuthenticated = useIsAuthenticated();
@@ -70,17 +60,8 @@ function RequireAuth({ children }) {
 function AppRoutes() {
   return (
     <BrowserRouter>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
+      <Toaster position="top-right" richColors closeButton duration={3500} />
+      <EmpresaProvider>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
@@ -124,10 +105,8 @@ function AppRoutes() {
           <Route path="/activos/otros-activos/inventario" element={<InventarioOtrosActivos />} />
           <Route path="/activos/otros-activos/editar" element={<EditarOtrosActivos />} />
           <Route path="/activos/otros-activos/eliminar" element={<EliminarOtrosActivos />} />
-          {/* SOLICITUDES */}
-          <Route path="/solicitudes/crear" element={<CrearSolicitud />} />
-          <Route path="/solicitudes/lista" element={<ListaSolicitud />} />
-          <Route path="/solicitudes/eliminar" element={<EliminarSolicitud />} />
+
+          <Route path="/activos/catalogos" element={<CatalogoActivos />} />
           {/* FORMATOS/RESPONSABILIDAD */}
           <Route path="/formatos/hojaderesponsabilidad" element={<HojaResponsabilidad />} />
           <Route path="/formatos/listahojasresponsabilidad" element={<ListaHojasResponsabilidad />} />
@@ -145,14 +124,10 @@ function AppRoutes() {
           {/* FORMATOS/TRASLADOSRETORNO */}
           <Route path="/formatos/trasladosRetorno/crear" element={<CrearTrasladoRetorno />} />
           <Route path="/formatos/trasladosRetorno/lista" element={<TrasladosRetornoLista />} />
-          {/* SUMINISTROS */}
-          <Route path="/suministros" element={<Suministros />} />
-          <Route path="/suministros/inventario" element={<SuministrosInventario />} />
-          <Route path="/suministros/movimientos" element={<Movimientos />} />
-          <Route path="/suministros/eliminarMovimientos" element={<EliminarSuministros />} />
         </Route>
         <Route path="*" element={<Navigate to="/inicio" replace />} />
       </Routes>
+      </EmpresaProvider>
     </BrowserRouter>
   );
 }

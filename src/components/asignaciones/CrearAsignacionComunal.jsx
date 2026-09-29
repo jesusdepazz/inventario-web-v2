@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import EquiposService from "../../services/EquiposServices";
+import { toast } from "../../utils/toast";
+import ActivosService from "../../services/ActivosServices";
 import UbicacionesService from "../../services/UbicacionesServices";
 import AsignacionesComunalesService from "../../services/AsignacionesComunalesService";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrVacia } from "../ui/Tabla";
 
 export default function CrearAsignacionComunal() {
   const navigate = useNavigate();
@@ -50,13 +51,13 @@ export default function CrearAsignacionComunal() {
       const existe = equiposAsignados.some((e) => e.codificacion === cod);
       if (existe) return toast.warning("Este equipo ya fue agregado");
 
-      const response = await EquiposService.obtenerPorCodificacion(cod);
+      const response = await ActivosService.obtenerPorCodificacion(cod);
       const data = response.data;
 
       setEquiposAsignados((prev) => [...prev, { codificacion: cod, ...data }]);
       setCodificacion("");
     } catch {
-      toast.error("Equipo no encontrado");
+      toast.error("Activo no encontrado");
     } finally {
       setLoadingEquipo(false);
     }
@@ -203,30 +204,26 @@ export default function CrearAsignacionComunal() {
               </button>
             </div>
 
-            <div className="max-h-52 overflow-auto">
-              <table className="min-w-full text-xs">
-                <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                  <tr className="text-left text-slate-700">
-                    <th className="px-3 py-2 font-semibold">Codificación</th>
-                    <th className="px-3 py-2 font-semibold">Modelo</th>
-                    <th className="px-3 py-2 font-semibold">Ubicación actual</th>
-                    <th className="px-3 py-2 font-semibold w-16">Acción</th>
+            <TablaContenedor className="max-h-52 m-3">
+              <Tabla>
+                <THead>
+                  <tr>
+                    <Th>Codificación</Th>
+                    <Th>Modelo</Th>
+                    <Th>Ubicación actual</Th>
+                    <Th className="w-16">Acción</Th>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
+                </THead>
+                <TBody>
                   {equiposAsignados.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-3 py-6 text-slate-500 text-center">
-                        Vacío
-                      </td>
-                    </tr>
+                    <TrVacia colSpan={4}>Vacío</TrVacia>
                   ) : (
                     equiposAsignados.map((eq, idx) => (
-                      <tr key={`${eq.codificacion}-${idx}`} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-semibold text-slate-900">{eq.codificacion}</td>
-                        <td className="px-3 py-2 text-slate-700">{eq.modelo || "-"}</td>
-                        <td className="px-3 py-2 text-slate-700">{eq.ubicacion || "-"}</td>
-                        <td className="px-3 py-2">
+                      <Tr key={`${eq.codificacion}-${idx}`} index={idx}>
+                        <Td destacado>{eq.codificacion}</Td>
+                        <Td>{eq.modelo || "-"}</Td>
+                        <Td>{eq.ubicacion || "-"}</Td>
+                        <Td>
                           <button
                             type="button"
                             onClick={() => quitarEquipo(idx)}
@@ -234,13 +231,13 @@ export default function CrearAsignacionComunal() {
                           >
                             Quitar
                           </button>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))
                   )}
-                </tbody>
-              </table>
-            </div>
+                </TBody>
+              </Tabla>
+            </TablaContenedor>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4">

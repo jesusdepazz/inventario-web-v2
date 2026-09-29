@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import BajaActivosService from "../../../services/BajaActivosServices";
-import EquiposService from "../../../services/EquiposServices";
+import ActivosService from "../../../services/ActivosServices";
 import UbicacionesService from "../../../services/UbicacionesServices";
 
 export const generarBajaPDF = async (bajaId) => {
@@ -9,7 +9,7 @@ export const generarBajaPDF = async (bajaId) => {
     const { data: baja } = await BajaActivosService.obtenerPorId(bajaId);
 
     const { data: equipo } =
-      await EquiposService.obtenerPorCodificacion(baja.codificacionEquipo);
+      await ActivosService.obtenerPorCodificacion(baja.codificacionEquipo);
       
     const { data: ubicaciones } =
       await UbicacionesService.obtenerTodas();

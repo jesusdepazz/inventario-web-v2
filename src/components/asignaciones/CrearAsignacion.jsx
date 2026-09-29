@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmpleadosService from "../../services/EmpleadosServices";
-import EquiposService from "../../services/EquiposServices";
+import ActivosService from "../../services/ActivosServices";
 import AsignacionesService from "../../services/AsignacionesServices";
 import EmpleadosExternosService from "../../services/EmpleadosExternosServices";
 import UbicacionesService from "../../services/UbicacionesServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrVacia } from "../ui/Tabla";
 
 export default function CrearAsignacion() {
   const navigate = useNavigate();
@@ -109,7 +110,7 @@ export default function CrearAsignacion() {
       const existe = equiposAsignados.some((e) => e.codificacion === cod);
       if (existe) return alert("Este equipo ya fue agregado");
 
-      const response = await EquiposService.obtenerPorCodificacion(cod);
+      const response = await ActivosService.obtenerPorCodificacion(cod);
       const data = response.data;
 
       setEquiposAsignados((prev) => [
@@ -118,7 +119,7 @@ export default function CrearAsignacion() {
       ]);
       setCodificacion("");
     } catch (error) {
-      alert("Equipo no encontrado");
+      alert("Activo no encontrado");
     } finally {
       setLoadingEquipo(false);
     }
@@ -317,28 +318,24 @@ export default function CrearAsignacion() {
                   </button>
                 </div>
 
-                <div className="max-h-44 overflow-auto">
-                  <table className="min-w-full text-xs">
-                    <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                      <tr className="text-left text-slate-700">
-                        <th className="px-3 py-2 font-semibold">Código</th>
-                        <th className="px-3 py-2 font-semibold">Nombre</th>
-                        <th className="px-3 py-2 font-semibold w-16">Acción</th>
+                <TablaContenedor className="max-h-44 m-3">
+                  <Tabla>
+                    <THead>
+                      <tr>
+                        <Th>Código</Th>
+                        <Th>Nombre</Th>
+                        <Th className="w-16">Acción</Th>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    </THead>
+                    <TBody>
                       {empleadosAsignados.length === 0 ? (
-                        <tr>
-                          <td colSpan={3} className="px-3 py-6 text-slate-500 text-center">
-                            Vacío
-                          </td>
-                        </tr>
+                        <TrVacia colSpan={3}>Vacío</TrVacia>
                       ) : (
                         empleadosAsignados.map((emp, idx) => (
-                          <tr key={`${emp.codigo}-${idx}`} className="hover:bg-slate-50">
-                            <td className="px-3 py-2 font-semibold text-slate-900">{emp.codigo}</td>
-                            <td className="px-3 py-2 text-slate-700">{emp.nombre}</td>
-                            <td className="px-3 py-2">
+                          <Tr key={`${emp.codigo}-${idx}`} index={idx}>
+                            <Td destacado>{emp.codigo}</Td>
+                            <Td>{emp.nombre}</Td>
+                            <Td>
                               <button
                                 type="button"
                                 onClick={() => setEmpleadosAsignados((p) => p.filter((_, i) => i !== idx))}
@@ -346,13 +343,13 @@ export default function CrearAsignacion() {
                               >
                                 Quitar
                               </button>
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                         ))
                       )}
-                    </tbody>
-                  </table>
-                </div>
+                    </TBody>
+                  </Tabla>
+                </TablaContenedor>
               </div>
               <div className="rounded-xl border border-slate-200 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -398,30 +395,26 @@ export default function CrearAsignacion() {
                   </button>
                 </div>
 
-                <div className="max-h-44 overflow-auto">
-                  <table className="min-w-full text-xs">
-                    <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                      <tr className="text-left text-slate-700">
-                        <th className="px-3 py-2 font-semibold">Codificación</th>
-                        <th className="px-3 py-2 font-semibold">Modelo</th>
-                        <th className="px-3 py-2 font-semibold">Ubicación</th>
-                        <th className="px-3 py-2 font-semibold w-16">Acción</th>
+                <TablaContenedor className="max-h-44 m-3">
+                  <Tabla>
+                    <THead>
+                      <tr>
+                        <Th>Codificación</Th>
+                        <Th>Modelo</Th>
+                        <Th>Ubicación</Th>
+                        <Th className="w-16">Acción</Th>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    </THead>
+                    <TBody>
                       {equiposAsignados.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="px-3 py-6 text-slate-500 text-center">
-                            Vacío
-                          </td>
-                        </tr>
+                        <TrVacia colSpan={4}>Vacío</TrVacia>
                       ) : (
                         equiposAsignados.map((eq, idx) => (
-                          <tr key={`${eq.codificacion}-${idx}`} className="hover:bg-slate-50">
-                            <td className="px-3 py-2 font-semibold text-slate-900">{eq.codificacion}</td>
-                            <td className="px-3 py-2 text-slate-700">{eq.modelo || "-"}</td>
-                            <td className="px-3 py-2 text-slate-700">{eq.ubicacion || "-"}</td>
-                            <td className="px-3 py-2">
+                          <Tr key={`${eq.codificacion}-${idx}`} index={idx}>
+                            <Td destacado>{eq.codificacion}</Td>
+                            <Td>{eq.modelo || "-"}</Td>
+                            <Td>{eq.ubicacion || "-"}</Td>
+                            <Td>
                               <button
                                 type="button"
                                 onClick={() => setEquiposAsignados((p) => p.filter((_, i) => i !== idx))}
@@ -429,13 +422,13 @@ export default function CrearAsignacion() {
                               >
                                 Quitar
                               </button>
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                         ))
                       )}
-                    </tbody>
-                  </table>
-                </div>
+                    </TBody>
+                  </Tabla>
+                </TablaContenedor>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex items-center justify-between gap-3">

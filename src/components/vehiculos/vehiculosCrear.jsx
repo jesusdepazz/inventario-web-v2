@@ -1,29 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import UbicacionesService from "../../services/UbicacionesServices";
-import EquiposService from "../../services/EquiposServices";
-import { obtenerCategoria } from "../equipos/catalogoActivos";
+import VehiculosService from "../../services/VehiculosServices";
+import { limpiarPayload } from "../../services/payload";
+import { useEmpresa } from "../../context/empresa";
+import useFamilias from "../../hooks/useFamilias";
+import { preguntarImprimirIngreso } from "../../utils/ingresoBodegaPDF";
+import { CAMPOS_INGRESO } from "./config";
 
 export default function VehiculosCrear() {
   const CATEGORIA = "Vehículos";
-  const catInfo = obtenerCategoria(CATEGORIA);
+  const familias = useFamilias(CATEGORIA);
+  const { empresa } = useEmpresa();
 
   const [form, setForm] = useState({
-    categoria: CATEGORIA,
-    familia: "",
-    descripcionBien: "",
+    tipoEquipo: "",
+    codificacion: "",
+    placa: "",
+    vin: "",
+    marca: "",
+    modelo: "",
+    modeloAnio: "",
+    color: "",
+    tipoCombustible: "",
+    kilometrajeActual: "",
+    ubicacion: "",
+    estado: "",
+    fechaIngreso: "",
     ordenCompra: "",
     factura: "",
     proveedor: "",
-    fechaIngreso: "",
-    codificacion: "",
-    marca: "",
-    modelo: "",
-    serie: "",
-    estado: "",
-    ubicacion: "",
+    responsableAnterior: "",
     comentarios: "",
+    observaciones: "",
   });
 
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -50,7 +60,7 @@ export default function VehiculosCrear() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const obligatorios = ["familia", "fechaIngreso", "codificacion", "marca", "modelo", "serie", "estado", "ubicacion"];
+    const obligatorios = ["tipoEquipo", "fechaIngreso", "codificacion", "marca", "modelo", "estado", "ubicacion"];
     for (const campo of obligatorios) {
       if (!form[campo]) {
         toast.warn(`El campo "${campo}" es obligatorio.`);
@@ -58,14 +68,17 @@ export default function VehiculosCrear() {
       }
     }
 
-    const formData = new FormData();
-    Object.entries(form).forEach(([k, v]) => formData.append(k, v ?? ""));
+    const payload = limpiarPayload({ ...form, empresa }, {
+      fechas: ["fechaIngreso"],
+      numeros: ["modeloAnio", "kilometrajeActual"],
+    });
 
     try {
       setSaving(true);
-      await EquiposService.crear(formData);
+      const { data } = await VehiculosService.crear(payload);
       toast.success("Vehículo registrado exitosamente");
-      navigate("/equipos/inventario");
+      preguntarImprimirIngreso({ categoria: "Vehículos", empresa, activo: data ?? payload, campos: CAMPOS_INGRESO });
+      navigate("/activos/vehiculos/inventario");
     } catch (error) {
       toast.error(error.response?.data?.title || "Error al registrar el vehículo");
     } finally {
@@ -78,7 +91,7 @@ export default function VehiculosCrear() {
       <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
           <h1 className="text-xl font-bold text-slate-900">Registrar Vehículo</h1>
-          <p className="mt-1 text-sm text-slate-600">Alta de automóviles, motocicletas y maquinaria móvil.</p>
+          <p className="mt-1 text-sm text-slate-600">Alta de automóviles, motocicletas y maquinaria móvil · Empresa: <span className="font-semibold">{empresa}</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 p-6">
@@ -86,35 +99,47 @@ export default function VehiculosCrear() {
             <div className="flex flex-col md:col-span-2">
               <label className="text-xs font-semibold text-slate-700">Tipo de Vehículo (Familia) *</label>
               <select
-                name="familia"
-                value={form.familia}
+                name="tipoEquipo"
+                value={form.tipoEquipo}
                 onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               >
                 <option value="">-- Seleccione tipo --</option>
-                {catInfo?.familias.map((f) => (
+                {familias.map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Placa / Codificación *</label>
+              <label className="text-xs font-semibold text-slate-700">Codificación *</label>
               <input
                 name="codificacion"
                 value={form.codificacion}
                 onChange={handleChange}
-                placeholder="Número de Placa o Código Interno"
+                placeholder="Código Interno"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">VIN / Número de Chasis (Serie) *</label>
+              <label className="text-xs font-semibold text-slate-700">Placa</label>
               <input
-                name="serie"
-                value={form.serie}
+                name="placa"
+                value={form.placa}
                 onChange={handleChange}
+                placeholder="Número de placa"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">VIN / Número de Chasis</label>
+              <input
+                name="vin"
+                value={form.vin}
+                onChange={handleChange}
+                maxLength={17}
                 placeholder="Número de serie o VIN"
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
@@ -132,12 +157,56 @@ export default function VehiculosCrear() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Modelo / Año *</label>
+              <label className="text-xs font-semibold text-slate-700">Modelo *</label>
               <input
                 name="modelo"
                 value={form.modelo}
                 onChange={handleChange}
-                placeholder="Ej. Hilux 2023"
+                placeholder="Ej. Hilux"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Año</label>
+              <input
+                type="number"
+                name="modeloAnio"
+                value={form.modeloAnio}
+                onChange={handleChange}
+                placeholder="Ej. 2023"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Color</label>
+              <input
+                name="color"
+                value={form.color}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Tipo de Combustible</label>
+              <input
+                name="tipoCombustible"
+                value={form.tipoCombustible}
+                onChange={handleChange}
+                placeholder="Ej. Gasolina, Diésel"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Kilometraje Actual</label>
+              <input
+                type="number"
+                name="kilometrajeActual"
+                value={form.kilometrajeActual}
+                onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
             </div>
@@ -183,6 +252,26 @@ export default function VehiculosCrear() {
             </div>
 
             <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Orden de Compra</label>
+              <input
+                name="ordenCompra"
+                value={form.ordenCompra}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Factura</label>
+              <input
+                name="factura"
+                value={form.factura}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col">
               <label className="text-xs font-semibold text-slate-700">Proveedor / Concesionario</label>
               <input
                 name="proveedor"
@@ -192,14 +281,34 @@ export default function VehiculosCrear() {
               />
             </div>
 
+            <div className="flex flex-col">
+              <label className="text-xs font-semibold text-slate-700">Responsable Anterior</label>
+              <input
+                name="responsableAnterior"
+                value={form.responsableAnterior}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
             <div className="flex flex-col md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Detalles o Especificaciones</label>
+              <label className="text-xs font-semibold text-slate-700">Comentarios</label>
               <textarea
                 name="comentarios"
                 rows="2"
                 value={form.comentarios}
                 onChange={handleChange}
-                placeholder="Color, cilindraje, tipo de combustible, etc."
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
+              />
+            </div>
+
+            <div className="flex flex-col md:col-span-2">
+              <label className="text-xs font-semibold text-slate-700">Observaciones</label>
+              <textarea
+                name="observaciones"
+                rows="2"
+                value={form.observaciones}
+                onChange={handleChange}
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
               />
             </div>

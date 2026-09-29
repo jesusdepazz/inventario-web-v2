@@ -1,26 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FiFilter } from "react-icons/fi";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import EquiposService from "../../services/EquiposServices";
+import { useEmpresa } from "../../context/empresa";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
 
 const PAGE_SIZE = 14;
 
-const obtenerCategoriaActual = () => {
-  const params = new URLSearchParams(window.location.search);
-  const categoriaQuery = params.get("categoria");
-  if (categoriaQuery) return decodeURIComponent(categoriaQuery);
-
-  const pathname = window.location.pathname;
-  if (pathname.includes("/inmuebles/")) return "Inmuebles";
-  if (pathname.includes("/mobiliario-y-equipo/")) return "Mobiliario y equipo";
-  if (pathname.includes("/equipo-de-computo/")) return "Equipo de cómputo";
-  if (pathname.includes("/vehiculos/")) return "Vehículos";
-  if (pathname.includes("/otros-activos/")) return "Otros activos";
-  return "";
-};
-
 const EliminarEquipos = () => {
-  const categoriaActual = useMemo(() => obtenerCategoriaActual(), []);
+  const { empresa } = useEmpresa();
   const [equipos, setEquipos] = useState([]);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,18 +26,14 @@ const EliminarEquipos = () => {
   const cargarEquipos = async () => {
     try {
       setLoading(true);
-      const res = await EquiposService.obtenerEquipos();
+      const res = await EquiposService.obtenerEquipos({ empresa });
       const lista = Array.isArray(res.data)
         ? res.data
         : Array.isArray(res.data?.$values)
         ? res.data.$values
         : [];
 
-      const listaFiltrada = categoriaActual
-        ? lista.filter((equipo) => equipo.categoria === categoriaActual)
-        : lista;
-
-      setEquipos(listaFiltrada);
+      setEquipos(lista);
     } catch (err) {
       console.error("Error al cargar equipos", err);
       toast.error("❌ Error al obtener los equipos");
@@ -60,7 +44,8 @@ const EliminarEquipos = () => {
 
   useEffect(() => {
     cargarEquipos();
-  }, [categoriaActual]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa]);
 
   const handleFiltroChange = (e) => {
     const { name, value } = e.target;
@@ -98,11 +83,9 @@ const EliminarEquipos = () => {
         (equipo.fechaIngreso &&
           new Date(equipo.fechaIngreso).toISOString().split("T")[0] === fechaExacta);
 
-      const okCategoria = !categoriaActual || equipo.categoria === categoriaActual;
-
-      return okCategoria && okCod && okMarca && okModelo && okTipo && okFecha;
+      return okCod && okMarca && okModelo && okTipo && okFecha;
     });
-  }, [equipos, filtros, categoriaActual]);
+  }, [equipos, filtros]);
 
   const totalPages = Math.max(1, Math.ceil(equiposFiltrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
@@ -210,42 +193,38 @@ const EliminarEquipos = () => {
         </div>
 
         <div className="flex-1 px-6 py-4 overflow-hidden">
-          <div className="rounded-2xl border border-slate-200 overflow-hidden h-full flex flex-col bg-white">
+          <TablaContenedor className="h-full flex flex-col">
             <div className="flex-1 overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                  <tr className="text-left text-slate-700">
-                    <th className="px-4 py-3 font-semibold w-20">ID</th>
-                    <th className="px-4 py-3 font-semibold min-w-[180px]">Codificación</th>
-                    <th className="px-4 py-3 font-semibold min-w-[140px]">Marca</th>
-                    <th className="px-4 py-3 font-semibold min-w-[140px]">Modelo</th>
-                    <th className="px-4 py-3 font-semibold min-w-[140px]">Serie</th>
-                    <th className="px-4 py-3 font-semibold min-w-[220px]">Ubicación</th>
-                    <th className="px-4 py-3 font-semibold min-w-[140px]">Fecha ingreso</th>
-                    <th className="px-4 py-3 font-semibold w-44 text-center">Acciones</th>
+              <Tabla>
+                <THead>
+                  <tr>
+                    <Th className="w-20">ID</Th>
+                    <Th className="min-w-[180px]">Codificación</Th>
+                    <Th className="min-w-[140px]">Marca</Th>
+                    <Th className="min-w-[140px]">Modelo</Th>
+                    <Th className="min-w-[140px]">Serie</Th>
+                    <Th className="min-w-[220px]">Ubicación</Th>
+                    <Th className="min-w-[140px]">Fecha ingreso</Th>
+                    <Th className="w-44 text-center">Acciones</Th>
                   </tr>
-                </thead>
+                </THead>
 
-                <tbody className="divide-y divide-slate-100">
+                <TBody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                        Cargando equipos...
-                      </td>
-                    </tr>
+                    <TrCargando colSpan={8} />
                   ) : pageItems.length > 0 ? (
-                    pageItems.map((equipo) => (
-                      <tr key={equipo.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-800 font-semibold">{equipo.id}</td>
-                        <td className="px-4 py-3 text-slate-900 font-semibold">{equipo.codificacion || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">{equipo.marca || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">{equipo.modelo || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">{equipo.serie || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">{equipo.ubicacion || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">
+                    pageItems.map((equipo, i) => (
+                      <Tr key={equipo.id} index={i}>
+                        <Td>{equipo.id}</Td>
+                        <Td destacado>{equipo.codificacion || "-"}</Td>
+                        <Td>{equipo.marca || "-"}</Td>
+                        <Td>{equipo.modelo || "-"}</Td>
+                        <Td>{equipo.serie || "-"}</Td>
+                        <Td>{equipo.ubicacion || "-"}</Td>
+                        <Td>
                           {equipo.fechaIngreso ? new Date(equipo.fechaIngreso).toLocaleDateString("es-ES") : "Sin fecha"}
-                        </td>
-                        <td className="px-4 py-3">
+                        </Td>
+                        <Td>
                           <div className="flex justify-center">
                             <button
                               onClick={() => eliminarEquipo(equipo.id)}
@@ -255,18 +234,14 @@ const EliminarEquipos = () => {
                               {deletingId === equipo.id ? "Eliminando..." : "Eliminar"}
                             </button>
                           </div>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                        No se encontraron equipos.
-                      </td>
-                    </tr>
+                    <TrVacia colSpan={8}>No se encontraron equipos.</TrVacia>
                   )}
-                </tbody>
-              </table>
+                </TBody>
+              </Tabla>
             </div>
 
             <div className="px-4 py-3 bg-white border-t border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -305,7 +280,7 @@ const EliminarEquipos = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </TablaContenedor>
         </div>
 
         <div className="px-6 pb-4">

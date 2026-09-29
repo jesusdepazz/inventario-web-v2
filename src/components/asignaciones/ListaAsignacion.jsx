@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import AsignacionesService from "../../services/AsignacionesServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
 
 const ListaAsignaciones = () => {
   const [asignaciones, setAsignaciones] = useState([]);
@@ -103,61 +104,51 @@ const ListaAsignaciones = () => {
           </div>
         </div>
         <div className="px-6 py-5">
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <div className="max-h-[58vh] overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                  <tr className="text-left text-slate-700">
-                    <th className="px-4 py-3 font-semibold w-16">#</th>
-                    <th className="px-4 py-3 font-semibold">Código</th>
-                    <th className="px-4 py-3 font-semibold">Nombre</th>
-                    <th className="px-4 py-3 font-semibold">Puesto</th>
-                    <th className="px-4 py-3 font-semibold">Departamento</th>
-                    <th className="px-4 py-3 font-semibold">Equipo</th>
-                    <th className="px-4 py-3 font-semibold">Ubicación</th>
-                    <th className="px-4 py-3 font-semibold">Fecha</th>
+          <TablaContenedor className="max-h-[58vh]">
+              <Tabla>
+                <THead>
+                  <tr>
+                    <Th className="w-16">#</Th>
+                    <Th>Código</Th>
+                    <Th>Nombre</Th>
+                    <Th>Puesto</Th>
+                    <Th>Departamento</Th>
+                    <Th>Equipo</Th>
+                    <Th>Ubicación</Th>
+                    <Th>Fecha</Th>
                   </tr>
-                </thead>
+                </THead>
 
-                <tbody className="divide-y divide-slate-100">
+                <TBody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                        Cargando...
-                      </td>
-                    </tr>
+                    <TrCargando colSpan={8} />
                   ) : paginadas.length > 0 ? (
                     paginadas.map((asig, idx) => (
-                      <tr key={asig.id ?? `${asig.codigoEmpleado}-${idx}`} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-600">
+                      <Tr key={asig.id ?? `${asig.codigoEmpleado}-${idx}`} index={idx}>
+                        <Td>
                           {(pageSafe - 1) * pageSize + idx + 1}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-slate-900">
+                        </Td>
+                        <Td destacado>
                           {asig.codigoEmpleado}
-                        </td>
-                        <td className="px-4 py-3 text-slate-800">{asig.nombreEmpleado}</td>
-                        <td className="px-4 py-3 text-slate-700">{asig.puesto}</td>
-                        <td className="px-4 py-3 text-slate-700">{asig.departamento}</td>
-                        <td className="px-4 py-3 text-slate-700">{asig.codificacionEquipo}</td>
-                        <td className="px-4 py-3 text-slate-700">{asig.ubicacion || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">
+                        </Td>
+                        <Td>{asig.nombreEmpleado}</Td>
+                        <Td>{asig.puesto}</Td>
+                        <Td>{asig.departamento}</Td>
+                        <Td>{asig.codificacionEquipo}</Td>
+                        <Td>{asig.ubicacion || "-"}</Td>
+                        <Td className="whitespace-nowrap">
                           {asig.fechaAsignacion
                             ? new Date(asig.fechaAsignacion).toLocaleDateString()
                             : "-"}
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                        No hay asignaciones registradas.
-                      </td>
-                    </tr>
+                    <TrVacia colSpan={8}>No hay asignaciones registradas.</TrVacia>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </TBody>
+              </Tabla>
+          </TablaContenedor>
           <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <div className="text-sm text-slate-600">
               Página <b>{pageSafe}</b> de <b>{totalPages}</b> ·{" "}

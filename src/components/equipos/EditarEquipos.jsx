@@ -1,48 +1,41 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { toast } from "react-toastify";
+import React, { useEffect, useState } from "react";
+import { toast } from "../../utils/toast";
 import EquiposServices from "../../services/EquiposServices";
 import UbicacionesService from "../../services/UbicacionesServices";
-import { CATEGORIAS_ACTIVOS, obtenerCategoria } from "./catalogoActivos";
+import { aLista, limpiarPayload } from "../../services/payload";
+import useFamilias from "../../hooks/useFamilias";
+import FormularioEquipo from "./FormularioEquipo";
+import { CAMPOS_EQUIPO } from "./camposEquipo";
 
-const obtenerCategoriaActual = () => {
-  const params = new URLSearchParams(window.location.search);
-  const categoriaQuery = params.get("categoria");
-  if (categoriaQuery) return decodeURIComponent(categoriaQuery);
-
-  const pathname = window.location.pathname;
-  if (pathname.includes("/inmuebles/")) return "Inmuebles";
-  if (pathname.includes("/mobiliario-y-equipo/")) return "Mobiliario y equipo";
-  if (pathname.includes("/equipo-de-computo/")) return "Equipo de cómputo";
-  if (pathname.includes("/vehiculos/")) return "Vehículos";
-  if (pathname.includes("/otros-activos/")) return "Otros activos";
-  return "";
+const mensajeError = (error, fallback) => {
+  const data = error?.response?.data;
+  if (typeof data === "string" && data) return data;
+  return data?.mensaje || data?.title || fallback;
 };
 
 const EditarEquipo = () => {
-  const categoriaActual = useMemo(() => obtenerCategoriaActual(), []);
+  const familias = useFamilias("Equipo de cómputo");
   const [codificacion, setCodificacion] = useState("");
   const [equipo, setEquipo] = useState(null);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [loadingBuscar, setLoadingBuscar] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    UbicacionesService.obtenerTodas()
+      .then((res) => setUbicaciones(aLista(res.data).map((u) => u.nombre)))
+      .catch(() => toast.error("Error al cargar ubicaciones"));
+  }, []);
+
   const buscarEquipo = async () => {
-    const cod = codificacion?.trim();
+    const cod = codificacion.trim();
     if (!cod) {
       toast.warn("Ingresá la codificación");
       return;
     }
-
     try {
       setLoadingBuscar(true);
       const { data } = await EquiposServices.obtenerPorCodificacion(cod);
-
-      if (categoriaActual && data?.categoria && data.categoria !== categoriaActual) {
-        toast.error(`Este equipo pertenece a ${data.categoria} y no a ${categoriaActual}.`);
-        setEquipo(null);
-        return;
-      }
-
       setEquipo(data);
     } catch {
       toast.error("Equipo no encontrado");
@@ -51,296 +44,89 @@ const EditarEquipo = () => {
     }
   };
 
-  const onEnterBuscar = (e) => {
-    if (e.key === "Enter") buscarEquipo();
-  };
-
-  useEffect(() => {
-    if (!equipo) return;
-
-    const cargarUbicaciones = async () => {
-      try {
-        const { data } = await UbicacionesService.obtenerTodas();
-        const lista = Array.isArray(data) ? data : Array.isArray(data?.$values) ? data.$values : [];
-        setUbicaciones(lista);
-      } catch {
-        toast.error("Error al cargar ubicaciones");
-      }
-    };
-
-    cargarUbicaciones();
-  }, [equipo]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEquipo((prev) => ({ ...prev, [name]: value }));
   };
 
-  const categoriaSeleccionada = obtenerCategoria(equipo?.categoria);
-
   const guardarCambios = async () => {
     if (!equipo?.id) return;
-
+    const faltante = CAMPOS_EQUIPO.find((c) => c.requerido && !String(equipo[c.name] ?? "").trim());
+    if (faltante) {
+      toast.warn(`El campo "${faltante.label}" es obligatorio.`);
+      return;
+    }
     try {
       setSaving(true);
-
-      console.log("OBJETO A ENVIAR:", equipo);
-
-      await EquiposServices.editar(equipo.id, equipo);
-      toast.success("✅ Equipo actualizado correctamente");
+      await EquiposServices.editar(equipo.id, limpiarPayload(equipo, { fechas: ["fechaIngreso", "fechaActualizacion"] }));
+      toast.success("Equipo actualizado correctamente");
       setEquipo(null);
       setCodificacion("");
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al actualizar equipo");
+    } catch (error) {
+      console.error(error);
+      toast.error(mensajeError(error, "Error al actualizar el equipo"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="h-[calc(100vh-52px)] flex items-start justify-center pt-10 overflow-y-auto">
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h1 className="text-xl font-bold text-slate-900">Editar equipo</h1>
-          <p className="text-sm text-slate-600">
-            Buscá por codificación y actualizá los datos del equipo.
-          </p>
+    <div className="min-h-[calc(100vh-52px)] overflow-y-auto bg-slate-50 px-4 py-8">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Editar equipo de cómputo</h1>
+          <p className="mt-1 text-sm text-slate-500">Buscá por codificación y actualizá todos los datos del equipo.</p>
         </div>
-        <div className="px-6 py-5 overflow-auto max-h-[calc(100vh-200px)]">
-          {!equipo && (
+
+        <div className="p-6">
+          {!equipo ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <h2 className="text-sm font-bold text-slate-900 tracking-wide">
-                BUSCAR POR CODIFICACIÓN
-              </h2>
-              <p className="text-sm text-slate-600 mt-1">
-                Ej: <span className="font-semibold">EQ-IT-000123</span>
-              </p>
-
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div className="sm:col-span-8">
-                  <label className="text-xs font-semibold text-slate-600">
-                    Codificación
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Escribí la codificación"
-                    value={codificacion}
-                    onChange={(e) => setCodificacion(e.target.value)}
-                    onKeyDown={onEnterBuscar}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                  />
-                </div>
-
-                <div className="sm:col-span-4 flex items-end">
-                  <button
-                    onClick={buscarEquipo}
-                    disabled={loadingBuscar}
-                    className="w-full rounded-xl bg-blue-900 text-white px-4 py-2 text-sm font-semibold hover:bg-blue-950 disabled:opacity-60"
-                  >
-                    {loadingBuscar ? "Buscando..." : "Buscar"}
-                  </button>
-                </div>
+              <label className="text-xs font-medium text-slate-600">Codificación</label>
+              <div className="mt-1 flex flex-col gap-3 sm:flex-row">
+                <input
+                  value={codificacion}
+                  onChange={(e) => setCodificacion(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && buscarEquipo()}
+                  placeholder="Ej: EQ-IT-000123"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                />
+                <button
+                  onClick={buscarEquipo}
+                  disabled={loadingBuscar}
+                  className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-950 active:scale-[0.97] disabled:opacity-60"
+                >
+                  {loadingBuscar ? "Buscando..." : "Buscar"}
+                </button>
               </div>
             </div>
-          )}
-
-          {equipo && (
+          ) : (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <h2 className="text-base font-semibold text-slate-900">
-                    Equipo encontrado
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    ID <span className="font-semibold">#{equipo.id}</span>
-                  </p>
-                </div>
-
-                <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-950 border border-blue-100 px-3 py-1 text-xs font-semibold">
-                  {equipo.codificacion}
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-slate-500">
+                  Equipo <span className="font-semibold text-slate-900">#{equipo.id}</span>
+                  {equipo.empresa && <> · {equipo.empresa}</>}
+                </p>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900 ring-1 ring-inset ring-blue-700/10">{equipo.codificacion}</span>
               </div>
 
-              <section className="rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 tracking-wide">
-                    DATOS PRINCIPALES
-                  </h3>
-                </div>
+              <FormularioEquipo valores={equipo} onChange={handleChange} familias={familias} ubicaciones={ubicaciones} />
 
-                <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">Categoría</label>
-                    <select name="categoria" value={equipo.categoria || ""} onChange={(e) => setEquipo((prev) => ({ ...prev, categoria: e.target.value, familia: "" }))} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800">
-                      <option value="">Seleccione categoría</option>
-                      {CATEGORIAS_ACTIVOS.map((categoria) => <option key={categoria.value} value={categoria.value}>{categoria.label}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">Familia</label>
-                    <select name="familia" value={equipo.familia || ""} onChange={handleChange} disabled={!categoriaSeleccionada} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800 disabled:bg-slate-100">
-                      <option value="">Seleccione familia</option>
-                      {categoriaSeleccionada?.familias.map((familia) => <option key={familia} value={familia}>{familia}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Codificación
-                    </label>
-                    <input
-                      value={equipo.codificacion || ""}
-                      readOnly
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Orden de Compra
-                    </label>
-                    <input
-                      name="ordenCompra"
-                      value={equipo.ordenCompra || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Factura
-                    </label>
-                    <input
-                      name="factura"
-                      value={equipo.factura || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Marca
-                    </label>
-                    <input
-                      name="marca"
-                      value={equipo.marca || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Modelo
-                    </label>
-                    <input
-                      name="modelo"
-                      value={equipo.modelo || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Serie
-                    </label>
-                    <input
-                      name="serie"
-                      value={equipo.serie || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    />
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Ubicación
-                    </label>
-                    <select
-                      name="ubicacion"
-                      value={equipo.ubicacion || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    >
-                      <option value="">Seleccione ubicación</option>
-                      {ubicaciones.map((u) => (
-                        <option key={u.id ?? u.nombre} value={u.nombre}>
-                          {u.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <label className="text-xs font-semibold text-slate-600">
-                      Estado
-                    </label>
-                    <select
-                      name="estado"
-                      value={equipo.estado || ""}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-                    >
-                      <option value="">-- Seleccione estado --</option>
-                      <option value="Buen estado">Buen estado</option>
-                      <option value="Inactivo">Reparación</option>
-                      <option value="Obsoleto">Obsoleto</option>
-                    </select>
-                  </div>
-                </div>
-              </section>
-
-              {equipo.categoria === "Vehículos" && (
-                <section className="rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 tracking-wide">
-                      CONFIGURACIÓN DE VEHÍCULOS
-                    </h3>
-                  </div>
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">VIN / número de chasis</label><input name="vin" value={equipo.vin || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Número de chasis</label><input name="numeroChasis" value={equipo.numeroChasis || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Año / modelo</label><input name="modeloAnio" type="number" min="1900" max="2100" value={equipo.modeloAnio || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Color</label><input name="colorVehiculo" value={equipo.colorVehiculo || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Tipo de combustible</label><input name="tipoCombustible" value={equipo.tipoCombustible || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Kilometraje</label><input name="kilometraje" type="number" min="0" value={equipo.kilometraje || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Estado físico</label><select name="estadoFisico" value={equipo.estadoFisico || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800"><option value="">-- Seleccione --</option><option value="Excelente">Excelente</option><option value="Bueno">Bueno</option><option value="Regular">Regular</option><option value="Malo">Malo</option><option value="En reparación">En reparación</option></select></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Catálogo</label><input name="catalogoVehiculo" value={equipo.catalogoVehiculo || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="flex flex-col"><label className="text-xs font-semibold text-slate-600">Póliza de seguro</label><input name="polizaSeguro" value={equipo.polizaSeguro || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="md:col-span-3 flex flex-col"><label className="text-xs font-semibold text-slate-600">Programación de mantenimiento</label><input name="programacionMantenimiento" value={equipo.programacionMantenimiento || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="md:col-span-3 flex flex-col"><label className="text-xs font-semibold text-slate-600">Alertas de servicios</label><input name="alertasServicio" value={equipo.alertasServicio || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="md:col-span-3 flex flex-col"><label className="text-xs font-semibold text-slate-600">Historial de reparaciones</label><textarea name="historialReparaciones" rows="2" value={equipo.historialReparaciones || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="md:col-span-3 flex flex-col"><label className="text-xs font-semibold text-slate-600">Reporte de daños / incidencias</label><textarea name="reporteDanios" rows="2" value={equipo.reporteDanios || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                    <div className="md:col-span-3 flex flex-col"><label className="text-xs font-semibold text-slate-600">Bitácora de fallas</label><textarea name="bitacoraFallas" rows="2" value={equipo.bitacoraFallas || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-800" /></div>
-                  </div>
-                </section>
-              )}
-
-              <div className="sticky bottom-0 bg-white border-t border-slate-100 pt-4">
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setEquipo(null)}
-                    className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Cancelar
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={guardarCambios}
-                    disabled={saving}
-                    className="rounded-xl bg-emerald-600 text-white px-6 py-3 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    {saving ? "Guardando..." : "Guardar cambios"}
-                  </button>
-                </div>
+              <div className="sticky bottom-0 flex justify-end gap-3 border-t border-slate-100 bg-white pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEquipo(null)}
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.97]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={guardarCambios}
+                  disabled={saving}
+                  className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.97] disabled:opacity-60"
+                >
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </button>
               </div>
             </div>
           )}

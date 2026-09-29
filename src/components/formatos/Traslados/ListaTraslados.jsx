@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import TrasladosServices from "../../../services/TrasladosServices";
 import PdfTraslados from "./TrasladosPDF";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrVacia } from "../../ui/Tabla";
+import Badge from "../../ui/Badge";
 
 export default function TrasladosLista() {
   const [traslados, setTraslados] = useState([]);
@@ -82,10 +84,10 @@ export default function TrasladosLista() {
 
   const badgeStatus = (status) => {
     const s = (status || "").toLowerCase();
-    if (s.includes("pend")) return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    if (s.includes("comp") || s.includes("final")) return "bg-green-100 text-green-800 border-green-200";
-    if (s.includes("proc")) return "bg-blue-100 text-blue-800 border-blue-200";
-    return "bg-gray-100 text-gray-800 border-gray-200";
+    if (s.includes("pend")) return "ambar";
+    if (s.includes("comp") || s.includes("final")) return "verde";
+    if (s.includes("proc")) return "azul";
+    return "gris";
   };
 
   if (loading) {
@@ -164,48 +166,46 @@ export default function TrasladosLista() {
         </div>
 
         <div className="flex-1 min-h-0 p-6">
-          <div className="h-full overflow-auto rounded-2xl border border-gray-200">
-            <table className="min-w-[1600px] w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-blue-900 text-white">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">#</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Número</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Entrega</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Recibe</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Activos</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Motivo</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Desde</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Hasta</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Estado</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Observaciones</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Acciones</th>
+          <TablaContenedor className="h-full">
+            <Tabla className="min-w-[1600px]">
+              <THead>
+                <tr>
+                  <Th>#</Th>
+                  <Th>Número</Th>
+                  <Th>Fecha</Th>
+                  <Th>Entrega</Th>
+                  <Th>Recibe</Th>
+                  <Th>Activos</Th>
+                  <Th>Motivo</Th>
+                  <Th>Ubicación Desde</Th>
+                  <Th>Ubicación Hasta</Th>
+                  <Th>Estado</Th>
+                  <Th>Observaciones</Th>
+                  <Th>Acciones</Th>
                 </tr>
-              </thead>
+              </THead>
 
-              <tbody className="bg-white">
+              <TBody>
                 {filtrados.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} className="px-6 py-10 text-center text-gray-500">
-                      No hay registros de traslados.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={12}>
+                    No hay registros de traslados.
+                  </TrVacia>
                 ) : (
                   filtrados.map((t, i) => (
-                    <tr key={t.id} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                      <td className="px-4 py-4 border-t border-gray-200 align-top text-center font-semibold">
+                    <Tr key={t.id} index={i}>
+                      <Td className="align-top text-center">
                         {i + 1}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap font-bold text-blue-800">
+                      <Td destacado className="align-top whitespace-nowrap">
                         {t.no}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {t.fechaEmision ? new Date(t.fechaEmision).toLocaleDateString("es-ES") : "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px]">
+                      <Td className="align-top min-w-[220px]">
                         {t.empleadoEntrega ? (
                           <div className="leading-5">
                             <div className="font-semibold text-gray-900">{t.empleadoEntrega.codigo}</div>
@@ -214,9 +214,9 @@ export default function TrasladosLista() {
                         ) : (
                           "-"
                         )}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px]">
+                      <Td className="align-top min-w-[220px]">
                         {t.empleadoRecibe ? (
                           <div className="leading-5">
                             <div className="font-semibold text-gray-900">{t.empleadoRecibe.codigo}</div>
@@ -225,9 +225,9 @@ export default function TrasladosLista() {
                         ) : (
                           "-"
                         )}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[320px]">
+                      <Td className="align-top min-w-[320px]">
                         {Array.isArray(t.equipos) && t.equipos.length > 0 ? (
                           <div className="max-h-28 overflow-auto pr-2">
                             <ul className="space-y-2">
@@ -242,31 +242,29 @@ export default function TrasladosLista() {
                         ) : (
                           "-"
                         )}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[180px] break-words">
+                      <Td className="align-top min-w-[180px] break-words">
                         {t.motivo || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px] break-words">
+                      <Td className="align-top min-w-[220px] break-words">
                         {t.ubicacionDesde || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[240px] break-words">
+                      <Td className="align-top min-w-[240px] break-words">
                         {t.ubicacionHasta || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${badgeStatus(t.status)}`}>
-                          {t.status || "-"}
-                        </span>
-                      </td>
+                      <Td className="align-top whitespace-nowrap">
+                        {t.status ? <Badge tono={badgeStatus(t.status)}>{t.status}</Badge> : "-"}
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[260px] break-words">
+                      <Td className="align-top min-w-[260px] break-words">
                         {t.observaciones || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         <PDFDownloadLink document={<PdfTraslados data={t} />} fileName={`Traslado-${t.id}.pdf`}>
                           {({ loading }) => (
                             <button
@@ -277,13 +275,13 @@ export default function TrasladosLista() {
                             </button>
                           )}
                         </PDFDownloadLink>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
         </div>
       </div>
     </div>

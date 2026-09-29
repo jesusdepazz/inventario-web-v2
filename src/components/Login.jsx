@@ -10,19 +10,23 @@ export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const allowLocalAccess = (role = "Administrador") => {
+  const allowLocalAccess = (role = "Administrador", cuentaMicrosoft = null) => {
+    // Si ya hay una cuenta de Microsoft (aunque falle el backend), se muestra el nombre real de la persona
+    const cuenta = cuentaMicrosoft || instance.getActiveAccount() || instance.getAllAccounts()[0];
     localStorage.setItem("tokenApp", "local-dev-token");
     localStorage.setItem("rol", role);
-    localStorage.setItem("email", "local@dev");
-    localStorage.setItem("name", "Usuario local");
+    localStorage.setItem("email", cuenta?.username || "local@dev");
+    localStorage.setItem("name", cuenta?.name || "Usuario local");
     navigate("/inicio");
   };
 
   const handleLogin = async () => {
     setLoading(true);
+    let account = null;
     try {
       const response = await instance.loginPopup(loginRequest);
-      const account = response.account;
+      account = response.account;
+      instance.setActiveAccount(account);
 
       let accessToken = response.accessToken;
 
@@ -63,7 +67,7 @@ export default function Login() {
 
       if (import.meta.env.DEV || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         console.warn("Microsoft no responde; usando acceso local de desarrollo.");
-        allowLocalAccess();
+        allowLocalAccess("Administrador", account);
         return;
       }
 
@@ -89,7 +93,7 @@ export default function Login() {
             Sistema de<br />Inventario
           </h1>
           <p className="mt-4 text-blue-100/80 text-lg max-w-sm">
-            Administrá equipos, asignaciones y suministros de Guandy desde un solo lugar.
+            Administrá activos, asignaciones y formatos de Guandy desde un solo lugar.
           </p>
           <div className="mt-12 flex items-center gap-3 text-sm text-blue-100/70">
             <FaShieldAlt className="text-blue-200" />

@@ -1,31 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import UbicacionesService from "../../services/UbicacionesServices";
-import EquiposService from "../../services/EquiposServices";
-import { obtenerCategoria } from "../equipos/catalogoActivos";
+import OtrosActivosService from "../../services/OtrosActivosServices";
+import { limpiarPayload, aLista } from "../../services/payload";
+import { useEmpresa } from "../../context/empresa";
+import useFamilias from "../../hooks/useFamilias";
+import { preguntarImprimirIngreso } from "../../utils/ingresoBodegaPDF";
+import { FORM_INICIAL, ESTADOS, CAMPOS_TEXTO, CAMPOS_INGRESO, mensajeError } from "./campos";
+
+const inputCls =
+  "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800";
 
 export default function ActivosCrear() {
-  const CATEGORIA = "Otros activos";
-  const catInfo = obtenerCategoria(CATEGORIA);
+  const familias = useFamilias("Otros activos");
+  const { empresa } = useEmpresa();
 
-  const [form, setForm] = useState({
-    categoria: CATEGORIA,
-    familia: "",
-    descripcionBien: "",
-    ordenCompra: "",
-    factura: "",
-    proveedor: "",
-    fechaIngreso: "",
-    codificacion: "",
-    marca: "",
-    modelo: "",
-    serie: "",
-    estado: "",
-    ubicacion: "",
-    comentarios: "",
-  });
-
+  const [form, setForm] = useState(FORM_INICIAL);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
@@ -34,8 +25,7 @@ export default function ActivosCrear() {
     const cargarUbicaciones = async () => {
       try {
         const res = await UbicacionesService.obtenerTodas();
-        let lista = Array.isArray(res.data) ? res.data : res.data?.$values || [];
-        setUbicaciones(lista.map((u) => u.nombre));
+        setUbicaciones(aLista(res.data).map((u) => u.nombre));
       } catch (error) {
         console.error("Error al cargar ubicaciones:", error);
       }
@@ -50,7 +40,7 @@ export default function ActivosCrear() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const obligatorios = ["familia", "fechaIngreso", "codificacion", "estado", "ubicacion"];
+    const obligatorios = ["tipoEquipo", "fechaIngreso", "codificacion", "estado", "ubicacion"];
     for (const campo of obligatorios) {
       if (!form[campo]) {
         toast.warn(`El campo "${campo}" es obligatorio.`);
@@ -58,16 +48,15 @@ export default function ActivosCrear() {
       }
     }
 
-    const formData = new FormData();
-    Object.entries(form).forEach(([k, v]) => formData.append(k, v ?? ""));
-
     try {
       setSaving(true);
-      await EquiposService.crear(formData);
+      const payload = limpiarPayload({ ...form, empresa }, { fechas: ["fechaIngreso"] });
+      const { data } = await OtrosActivosService.crear(payload);
       toast.success("Activo registrado exitosamente");
-      navigate("/equipos/inventario");
+      preguntarImprimirIngreso({ categoria: "Otros activos", empresa, activo: data ?? payload, campos: CAMPOS_INGRESO });
+      navigate("/activos/otros-activos/inventario");
     } catch (error) {
-      toast.error(error.response?.data?.title || "Error al crear el activo");
+      toast.error(mensajeError(error, "Error al crear el activo"));
     } finally {
       setSaving(false);
     }
@@ -78,86 +67,36 @@ export default function ActivosCrear() {
       <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
           <h1 className="text-xl font-bold text-slate-900">Crear Otro Activo</h1>
-          <p className="mt-1 text-sm text-slate-600">Registro de bienes no clasificados en otras categorías.</p>
+          <p className="mt-1 text-sm text-slate-600">Registro de bienes no clasificados en otras categorías · Empresa: <span className="font-semibold">{empresa}</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 p-6">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div className="flex flex-col md:col-span-2">
               <label className="text-xs font-semibold text-slate-700">Familia *</label>
-              <select
-                name="familia"
-                value={form.familia}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              >
+              <select name="tipoEquipo" value={form.tipoEquipo} onChange={handleChange} className={inputCls}>
                 <option value="">-- Seleccione familia --</option>
-                {catInfo?.familias.map((f) => (
+                {familias.map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
             </div>
 
-            <div className="flex flex-col md:col-span-2">
-              <label className="text-xs font-semibold text-slate-700">Descripción Corta</label>
-              <input
-                name="descripcionBien"
-                value={form.descripcionBien}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Codificación *</label>
-              <input
-                name="codificacion"
-                value={form.codificacion}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
+            {CAMPOS_TEXTO.map((c) => (
+              <div key={c.name} className="flex flex-col">
+                <label className="text-xs font-semibold text-slate-700">{c.label}</label>
+                <input name={c.name} value={form[c.name]} onChange={handleChange} className={inputCls} />
+              </div>
+            ))}
 
             <div className="flex flex-col">
               <label className="text-xs font-semibold text-slate-700">Fecha de Ingreso *</label>
-              <input
-                type="date"
-                name="fechaIngreso"
-                value={form.fechaIngreso}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Marca / Fabricante</label>
-              <input
-                name="marca"
-                value={form.marca}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-700">Modelo / Identificador</label>
-              <input
-                name="modelo"
-                value={form.modelo}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
+              <input type="date" name="fechaIngreso" value={form.fechaIngreso} onChange={handleChange} className={inputCls} />
             </div>
 
             <div className="flex flex-col">
               <label className="text-xs font-semibold text-slate-700">Ubicación *</label>
-              <input
-                list="ubicaciones-list"
-                name="ubicacion"
-                value={form.ubicacion}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
+              <input list="ubicaciones-list" name="ubicacion" value={form.ubicacion} onChange={handleChange} className={inputCls} />
               <datalist id="ubicaciones-list">
                 {ubicaciones.map((u, i) => <option key={i} value={u} />)}
               </datalist>
@@ -165,28 +104,20 @@ export default function ActivosCrear() {
 
             <div className="flex flex-col">
               <label className="text-xs font-semibold text-slate-700">Estado *</label>
-              <select
-                name="estado"
-                value={form.estado}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              >
+              <select name="estado" value={form.estado} onChange={handleChange} className={inputCls}>
                 <option value="">-- Seleccione estado --</option>
-                <option value="Buen estado">Buen estado</option>
-                <option value="Regular">Regular</option>
-                <option value="Obsoleto">Obsoleto</option>
+                {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
             <div className="flex flex-col md:col-span-2">
+              <label className="text-xs font-semibold text-slate-700">Comentarios</label>
+              <textarea name="comentarios" rows="3" value={form.comentarios} onChange={handleChange} className={inputCls} />
+            </div>
+
+            <div className="flex flex-col md:col-span-2">
               <label className="text-xs font-semibold text-slate-700">Observaciones</label>
-              <textarea
-                name="comentarios"
-                rows="3"
-                value={form.comentarios}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-800"
-              />
+              <textarea name="observaciones" rows="2" value={form.observaciones} onChange={handleChange} className={inputCls} />
             </div>
           </div>
 

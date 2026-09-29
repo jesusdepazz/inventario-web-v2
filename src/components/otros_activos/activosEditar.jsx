@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import EquiposServices from "../../services/EquiposServices";
+import { toast } from "../../utils/toast";
+import OtrosActivosService from "../../services/OtrosActivosServices";
 import UbicacionesService from "../../services/UbicacionesServices";
+import { limpiarPayload, aLista } from "../../services/payload";
+import useFamilias from "../../hooks/useFamilias";
+import { ESTADOS, CAMPOS_TEXTO, mensajeError } from "./campos";
 
-const familias = ["Herramienta", "Equipo especializado", "Activo diverso", "Otro activo"];
+const inputCls = "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm";
+
+// Muestra el valor guardado aunque no esté en el catálogo (p.ej. registros importados de Excel)
+const conValorActual = (opciones, actual) =>
+  actual && !opciones.includes(actual) ? [actual, ...opciones] : opciones;
 
 export default function EditarOtrosActivos() {
+  const familias = useFamilias("Otros activos");
   const [codificacion, setCodificacion] = useState("");
-  const [equipo, setEquipo] = useState(null);
+  const [activo, setActivo] = useState(null);
   const [ubicaciones, setUbicaciones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -16,8 +24,7 @@ export default function EditarOtrosActivos() {
     const cargarUbicaciones = async () => {
       try {
         const res = await UbicacionesService.obtenerTodas();
-        const data = Array.isArray(res.data) ? res.data : res.data?.$values ?? [];
-        setUbicaciones(data);
+        setUbicaciones(aLista(res.data).map((u) => u.nombre));
       } catch (error) {
         console.error("Error cargando ubicaciones:", error);
       }
@@ -26,7 +33,7 @@ export default function EditarOtrosActivos() {
     cargarUbicaciones();
   }, []);
 
-  const buscarEquipo = async () => {
+  const buscarActivo = async () => {
     const cod = codificacion.trim();
     if (!cod) {
       toast.warn("Ingrese una codificación");
@@ -35,17 +42,12 @@ export default function EditarOtrosActivos() {
 
     try {
       setLoading(true);
-      const { data } = await EquiposServices.obtenerPorCodificacion(cod);
-      if (data.categoria !== "Otros activos") {
-        toast.error("Este activo no pertenece a otros activos");
-        setEquipo(null);
-        return;
-      }
-      setEquipo(data);
+      const { data } = await OtrosActivosService.obtenerPorCodificacion(cod);
+      setActivo(data);
     } catch (error) {
       console.error(error);
       toast.error("Activo no encontrado");
-      setEquipo(null);
+      setActivo(null);
     } finally {
       setLoading(false);
     }
@@ -53,20 +55,27 @@ export default function EditarOtrosActivos() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEquipo((prev) => ({ ...prev, [name]: value }));
+    setActivo((prev) => ({ ...prev, [name]: value }));
   };
 
   const guardarCambios = async () => {
-    if (!equipo?.id) return;
+    if (!activo?.id) return;
+    if (!activo.codificacion?.trim()) {
+      toast.warn("La codificación es obligatoria");
+      return;
+    }
     try {
       setSaving(true);
-      await EquiposServices.editar(equipo.id, equipo);
+      await OtrosActivosService.editar(
+        activo.id,
+        limpiarPayload(activo, { fechas: ["fechaIngreso", "fechaActualizacion"] })
+      );
       toast.success("Activo actualizado correctamente");
-      setEquipo(null);
+      setActivo(null);
       setCodificacion("");
     } catch (error) {
       console.error(error);
-      toast.error("Error al actualizar el activo");
+      toast.error(mensajeError(error, "Error al actualizar el activo"));
     } finally {
       setSaving(false);
     }
@@ -80,34 +89,54 @@ export default function EditarOtrosActivos() {
           <p className="mt-1 text-sm text-slate-600">Busca por codificación y actualiza la información.</p>
         </div>
 
-        {!equipo ? (
+        {!activo ? (
           <div className="p-6">
             <label className="text-xs font-semibold text-slate-700">Codificación</label>
             <div className="mt-2 flex gap-3">
-              <input value={codificacion} onChange={(e) => setCodificacion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && buscarEquipo()} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" placeholder="Ej: OTR-001" />
-              <button onClick={buscarEquipo} disabled={loading} className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{loading ? "Buscando..." : "Buscar"}</button>
+              <input value={codificacion} onChange={(e) => setCodificacion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && buscarActivo()} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" placeholder="Ej: OTR-001" />
+              <button onClick={buscarActivo} disabled={loading} className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{loading ? "Buscando..." : "Buscar"}</button>
             </div>
           </div>
         ) : (
           <div className="space-y-6 p-6">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div className="flex flex-col md:col-span-2"><label className="text-xs font-semibold text-slate-700">Categoría</label><input value={equipo.categoria} readOnly className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col md:col-span-2"><label className="text-xs font-semibold text-slate-700">Familia</label><select name="familia" value={equipo.familia || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Seleccione familia</option>{familias.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Codificación</label><input value={equipo.codificacion || ""} readOnly className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Marca</label><input name="marca" value={equipo.marca || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Modelo</label><input name="modelo" value={equipo.modelo || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Serie</label><input name="serie" value={equipo.serie || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Orden de compra</label><input name="ordenCompra" value={equipo.ordenCompra || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Factura</label><input name="factura" value={equipo.factura || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Proveedor</label><input name="proveedor" value={equipo.proveedor || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Fecha ingreso</label><input type="date" name="fechaIngreso" value={equipo.fechaIngreso ? String(equipo.fechaIngreso).slice(0,10) : ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Estado</label><select name="estado" value={equipo.estado || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Seleccione estado</option><option value="Buen estado">Buen estado</option><option value="En reparación">En reparación</option><option value="Obsoleto">Obsoleto</option><option value="Disponible">Disponible</option></select></div>
-              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Ubicación</label><select name="ubicacion" value={equipo.ubicacion || ""} onChange={handleChange} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Seleccione ubicación</option>{ubicaciones.map((u) => <option key={u.id ?? u.nombre} value={u.nombre}>{u.nombre}</option>)}</select></div>
-              <div className="flex flex-col md:col-span-2"><label className="text-xs font-semibold text-slate-700">Comentarios</label><textarea name="comentarios" value={equipo.comentarios || ""} onChange={handleChange} rows="3" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" /></div>
+              <div className="flex flex-col md:col-span-2">
+                <label className="text-xs font-semibold text-slate-700">Familia</label>
+                <select name="tipoEquipo" value={activo.tipoEquipo || ""} onChange={handleChange} className={`${inputCls} bg-white`}>
+                  <option value="">Seleccione familia</option>
+                  {conValorActual(familias, activo.tipoEquipo).map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </div>
+
+              {CAMPOS_TEXTO.map((c) => (
+                <div key={c.name} className="flex flex-col">
+                  <label className="text-xs font-semibold text-slate-700">{c.label}</label>
+                  <input name={c.name} value={activo[c.name] || ""} onChange={handleChange} className={inputCls} />
+                </div>
+              ))}
+
+              {/* El PUT del backend no actualiza FechaIngreso */}
+              <div className="flex flex-col"><label className="text-xs font-semibold text-slate-700">Fecha ingreso</label><input type="date" value={activo.fechaIngreso ? String(activo.fechaIngreso).slice(0, 10) : ""} readOnly className={`${inputCls} bg-slate-100`} /></div>
+              <div className="flex flex-col">
+                <label className="text-xs font-semibold text-slate-700">Estado</label>
+                <select name="estado" value={activo.estado || ""} onChange={handleChange} className={`${inputCls} bg-white`}>
+                  <option value="">Seleccione estado</option>
+                  {conValorActual(ESTADOS, activo.estado).map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-xs font-semibold text-slate-700">Ubicación</label>
+                <select name="ubicacion" value={activo.ubicacion || ""} onChange={handleChange} className={`${inputCls} bg-white`}>
+                  <option value="">Seleccione ubicación</option>
+                  {conValorActual(ubicaciones, activo.ubicacion).map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col md:col-span-2"><label className="text-xs font-semibold text-slate-700">Comentarios</label><textarea name="comentarios" value={activo.comentarios || ""} onChange={handleChange} rows="3" className={inputCls} /></div>
+              <div className="flex flex-col md:col-span-2"><label className="text-xs font-semibold text-slate-700">Observaciones</label><textarea name="observaciones" value={activo.observaciones || ""} onChange={handleChange} rows="2" className={inputCls} /></div>
             </div>
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={() => setEquipo(null)} className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700">Cancelar</button>
+              <button type="button" onClick={() => setActivo(null)} className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700">Cancelar</button>
               <button type="button" onClick={guardarCambios} disabled={saving} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Guardando..." : "Guardar cambios"}</button>
             </div>
           </div>

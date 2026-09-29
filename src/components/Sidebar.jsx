@@ -1,477 +1,191 @@
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import {
-  FaHome,
-  FaLaptop,
-  FaClipboardList,
-  FaSignOutAlt,
-  FaChevronDown,
-  FaChevronUp,
-  FaUpload,
-  FaEdit,
-  FaTrash,
-  FaUserCheck,
-  FaBoxOpen,
-  FaPlus,
-  FaTimes,
-  FaMapMarkerAlt,
-  FaBuilding,
-  FaChair,
-  FaCar,
-  FaBoxes,
-} from "react-icons/fa";
+// eslint-disable-next-line no-unused-vars -- se usa como <motion.*> en JSX
+import { motion, AnimatePresence } from "motion/react";
+import { FaHome, FaLayerGroup, FaListUl, FaChevronRight, FaSignOutAlt } from "react-icons/fa";
+import { EMPRESAS, useEmpresa } from "../context/empresa";
+import { MODULOS, VISTAS_MODULO, FORMATOS, esAdministrador } from "./navegacion";
+import useNombreUsuario from "../hooks/useNombreUsuario";
 
-const navLinkClass = (active) =>
-  `flex items-center gap-3 font-semibold text-[15px] px-3 py-2.5 rounded-xl transition-all duration-200 ${
-    active
-      ? "bg-white text-blue-900 shadow-md"
-      : "text-blue-50/90 hover:bg-white/10 hover:text-white"
-  }`;
+const EASE = [0.23, 1, 0.32, 1];
 
-const categoryButtonClass =
-  "flex items-center justify-between w-full font-semibold text-[15px] px-3 py-2.5 rounded-xl text-blue-50/90 hover:bg-white/10 hover:text-white transition-all duration-200";
+function ItemNav({ to, icono: Icono, children, activo }) {
+  return (
+    <Link
+      to={to}
+      className={`relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${activo ? "text-white" : "text-blue-100/70 hover:bg-white/5 hover:text-white"}`}
+    >
+      {activo && (
+        <motion.span layoutId="nav-activo" className="absolute inset-0 rounded-xl bg-white/10 ring-1 ring-inset ring-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />
+      )}
+      {Icono && <Icono className="relative shrink-0 text-[13px] opacity-80" />}
+      <span className="relative truncate">{children}</span>
+    </Link>
+  );
+}
 
-const subLinkClass = (active) =>
-  `flex items-center gap-2 text-sm py-1 transition-colors ${
-    active
-      ? "text-white font-semibold"
-      : "text-blue-100/70 hover:text-white"
-  }`;
+function Grupo({ icono, titulo, abierto, onToggle, activo, children }) {
+  const Icono = icono;
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        aria-expanded={abierto}
+        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${activo ? "text-white" : "text-blue-100/70 hover:bg-white/5 hover:text-white"}`}
+      >
+        <Icono className="shrink-0 text-[13px] opacity-80" />
+        <span className="flex-1 truncate text-left">{titulo}</span>
+        <motion.span animate={{ rotate: abierto ? 90 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="text-[10px] opacity-60">
+          <FaChevronRight />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {abierto && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div className="ml-[18px] mt-0.5 flex flex-col gap-0.5 border-l border-white/10 py-1 pl-3">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-const modalPanelClass =
-  "relative bg-white rounded-2xl shadow-2xl p-6 w-96 border border-slate-100";
-const modalTitleClass = "text-xl font-bold mb-6 text-slate-900 text-center";
-const modalPrimaryBtnClass =
-  "w-full bg-blue-900 text-white py-2 px-4 rounded-lg hover:bg-blue-950 transition-colors";
-const modalCancelBtnClass =
-  "w-full bg-slate-200 text-slate-700 py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors";
+function SubItem({ to, activo, children }) {
+  return (
+    <Link
+      to={to}
+      className={`rounded-lg px-2.5 py-1.5 text-[13px] transition-colors ${activo ? "bg-white/10 font-medium text-white" : "text-blue-100/60 hover:bg-white/5 hover:text-white"}`}
+    >
+      {children}
+    </Link>
+  );
+}
 
-const slugifyCategoria = (value = "") =>
-  String(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const rutasPorCategoria = {
-  "Inmuebles": {
-    inventario: "/activos/inmuebles/inventario",
-    ingresar: "/activos/inmuebles/ingresar",
-    editar: "/activos/inmuebles/editar",
-    eliminar: "/activos/inmuebles/eliminar",
-  },
-  "Mobiliario y equipo": {
-    inventario: "/activos/mobiliario-y-equipo/inventario",
-    ingresar: "/activos/mobiliario-y-equipo/ingresar",
-    editar: "/activos/mobiliario-y-equipo/editar",
-    eliminar: "/activos/mobiliario-y-equipo/eliminar",
-  },
-  "Equipo de cómputo": {
-    inventario: "/activos/equipo-de-computo/inventario",
-    ingresar: "/activos/equipo-de-computo/ingresar",
-    editar: "/activos/equipo-de-computo/editar",
-    eliminar: "/activos/equipo-de-computo/eliminar",
-  },
-  "Vehículos": {
-    inventario: "/activos/vehiculos/inventario",
-    ingresar: "/activos/vehiculos/ingresar",
-    editar: "/activos/vehiculos/editar",
-    eliminar: "/activos/vehiculos/eliminar",
-  },
-  "Otros activos": {
-    inventario: "/activos/otros-activos/inventario",
-    ingresar: "/activos/otros-activos/ingresar",
-    editar: "/activos/otros-activos/editar",
-    eliminar: "/activos/otros-activos/eliminar",
-  },
-};
-
-export default function Sidebar({ open = false, onClose = () => {} }) {
+// Contenido del menú; se usa en la barra lateral fija y en el panel móvil
+export function SidebarContenido() {
+  const { pathname } = useLocation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [activosOpen, setActivosOpen] = useState(false);
-  const [categoriaActiva, setCategoriaActiva] = useState("");
-  const [mantenimientosOpen, setMantenimientosOpen] = useState(false);
-  const [formatosOpen, setFormatosOpen] = useState(false);
-  const [modalHojaOpen, setModalHojaOpen] = useState(false);
-  const [modalSolvenciaOpen, setModalSolvenciaOpen] = useState(false);
-  const [modalTrasladoOpen, setModalTrasladoOpen] = useState(false);
-  const [suministrosOpen, setSuministrosOpen] = useState(false);
-  const [modalBajasActivoOpen, setModalBajasActivoOpen] = useState(false);
-  const [modalTrasladoRetornoOpen, setModalTrasladoRetornoOpen] = useState(false);
-  const [rol, setRol] = useState(null);
+  const { empresa, setEmpresa } = useEmpresa();
+  const admin = esAdministrador();
+  const nombre = useNombreUsuario();
+  const rol = localStorage.getItem("rol") || "";
 
-  const isActive = (path) => location.pathname === path;
-  const isAdminRole = (value) => String(value || "").trim().toLowerCase() === "administrador";
+  const grupoActual = () => {
+    const m = MODULOS.find((x) => pathname.startsWith(x.base));
+    if (m) return m.categoria;
+    const f = FORMATOS.find((x) => pathname === x.crear || pathname === x.historial);
+    return f ? f.nombre : null;
+  };
+  const [abierto, setAbierto] = useState(grupoActual);
 
   useEffect(() => {
-    const storedRol = localStorage.getItem("rol");
-    setRol(storedRol);
-  }, []);
-
-  useEffect(() => {
-    onClose();
+    const g = grupoActual();
+    if (g) setAbierto(g);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [pathname]);
 
-  useEffect(() => {
-    const open =
-      modalHojaOpen ||
-      modalSolvenciaOpen ||
-      modalTrasladoOpen ||
-      modalBajasActivoOpen ||
-      modalTrasladoRetornoOpen;
+  const toggle = (g) => setAbierto((a) => (a === g ? null : g));
 
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [
-    modalHojaOpen,
-    modalSolvenciaOpen,
-    modalTrasladoOpen,
-    modalBajasActivoOpen,
-    modalTrasladoRetornoOpen,
-  ]);
-
-  const handleLogout = () => {
+  const cerrarSesion = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
     localStorage.removeItem("email");
     navigate("/login");
   };
 
-  const openHojaModal = () => setModalHojaOpen(true);
-  const closeHojaModal = () => setModalHojaOpen(false);
-  const handleHojaOption = (path) => {
-    navigate(path);
-    closeHojaModal();
-  };
-
-  const openSolvenciaModal = () => setModalSolvenciaOpen(true);
-  const closeSolvenciaModal = () => setModalSolvenciaOpen(false);
-  const handleSolvenciaOption = (path) => {
-    navigate(path);
-    closeSolvenciaModal();
-  };
-
-  const openTrasladoModal = () => setModalTrasladoOpen(true);
-  const closeTrasladoModal = () => setModalTrasladoOpen(false);
-  const handleTrasladoOption = (path) => {
-    navigate(path);
-    closeTrasladoModal();
-  };
-
-  const openBajasActivoModal = () => setModalBajasActivoOpen(true);
-  const closeBajasActivoModal = () => setModalBajasActivoOpen(false);
-  const handleBajasActivoOption = (path) => {
-    navigate(path);
-    closeBajasActivoModal();
-  };
-
-  const handleTrasladoRetornoOption = (ruta) => {
-    setModalTrasladoRetornoOpen(false);
-    navigate(ruta);
-  };
-
-  const closeTrasladoRetornoModal = () => setModalTrasladoRetornoOpen(false);
-
   return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
+    <div className="flex h-full flex-col bg-[radial-gradient(120%_60%_at_0%_0%,#1e3a8a_0%,#0b1a3d_55%,#07122b_100%)] text-white">
+      <div className="flex flex-col items-center px-5 pb-5 pt-7 text-center">
+        <motion.img
+          src="/logo_guandy.png"
+          alt="Guandy"
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: EASE }}
+          className="h-24 w-auto drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
         />
-      )}
+        <p className="mt-3 text-base font-semibold tracking-[0.2em]">INVENTARIO</p>
+        <p className="text-[11px] text-blue-200/60">Control de activos</p>
+      </div>
 
-      <div
-        className={`bg-gradient-to-b from-blue-950 via-blue-900 to-blue-900 text-white w-80 h-screen fixed flex flex-col shadow-xl z-50 transition-transform duration-300 lg:translate-x-0 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-      <div className="px-6 pt-9 pb-5 shrink-0 relative">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar menú"
-          className="absolute top-4 right-4 lg:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 hover:text-white"
+      <div className="px-4 pb-3">
+        <label className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-widest text-blue-200/50">Empresa</label>
+        <select
+          value={empresa}
+          onChange={(e) => setEmpresa(e.target.value)}
+          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white outline-none transition focus:border-white/25 focus:ring-4 focus:ring-white/10 [&>option]:text-slate-900"
         >
-          <FaTimes />
-        </button>
-        <div className="flex flex-col items-center">
-          <img src="/logo_guandy.png" alt="Logo Guandy" className="h-16 mb-3 drop-shadow-lg" />
-          <h2 className="text-xl font-extrabold tracking-wider text-white">
-            INVENTARIO
-          </h2>
-          <hr className="border-blue-400/30 w-3/4 mt-4" />
+          {EMPRESAS.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+      </div>
+
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+        <div className="space-y-0.5">
+          <ItemNav to="/inicio" icono={FaHome} activo={pathname === "/inicio"}>Inicio</ItemNav>
+          <ItemNav to="/equipos/inventario" icono={FaLayerGroup} activo={pathname.startsWith("/equipos/inventario")}>Inventario general</ItemNav>
+          {admin && <ItemNav to="/activos/catalogos" icono={FaListUl} activo={pathname === "/activos/catalogos"}>Catálogo de activos</ItemNav>}
+        </div>
+
+        <div>
+          <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-blue-200/40">Módulos</p>
+          <div className="space-y-0.5">
+            {MODULOS.map((m) => (
+              <Grupo key={m.categoria} icono={m.icono} titulo={m.categoria} abierto={abierto === m.categoria} onToggle={() => toggle(m.categoria)} activo={pathname.startsWith(m.base)}>
+                {VISTAS_MODULO.filter((v) => admin || !v.admin).map((v) => (
+                  <SubItem key={v.clave} to={`${m.base}/${v.clave}`} activo={pathname === `${m.base}/${v.clave}`}>{v.label}</SubItem>
+                ))}
+              </Grupo>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-blue-200/40">Formatos</p>
+          <div className="space-y-0.5">
+            {FORMATOS.map((f) => (
+              <Grupo key={f.nombre} icono={f.icono} titulo={f.nombre} abierto={abierto === f.nombre} onToggle={() => toggle(f.nombre)} activo={pathname === f.crear || pathname === f.historial}>
+                {admin && <SubItem to={f.crear} activo={pathname === f.crear}>Crear</SubItem>}
+                <SubItem to={f.historial} activo={pathname === f.historial}>Historial</SubItem>
+              </Grupo>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      <div className="border-t border-white/10 p-3">
+        <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-sm font-semibold uppercase">
+            {nombre.trim().charAt(0) || "U"}
+          </span>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-sm font-medium">{nombre}</p>
+            <p className="truncate text-[11px] text-blue-200/60">{rol || "Sin rol"}</p>
+          </div>
+          <button
+            onClick={cerrarSesion}
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            className="grid h-9 w-9 place-items-center rounded-lg text-blue-100/60 transition hover:bg-rose-500/15 hover:text-rose-300 active:scale-95"
+          >
+            <FaSignOutAlt />
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
-        <nav className="flex flex-col gap-2">
-          <Link to="/inicio" className={navLinkClass(isActive("/inicio"))}>
-            <FaHome /> Inicio
-          </Link>
-
-          <div>
-            <button onClick={() => setActivosOpen(!activosOpen)} className={categoryButtonClass}>
-              <span className="flex items-center gap-3">
-                <FaLaptop /> Activos
-              </span>
-              {activosOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
-            </button>
-            <div className={`ml-6 mt-1 flex flex-col gap-2 overflow-hidden transition-all duration-500 ${activosOpen ? "max-h-96" : "max-h-0"}`}>
-              <Link to="/equipos/inventario" className={subLinkClass(isActive("/equipos/inventario"))}>
-                <FaClipboardList /> Inventario general
-              </Link>
-              {[
-                { nombre: "Inmuebles", icono: <FaBuilding /> },
-                { nombre: "Mobiliario y equipo", icono: <FaChair /> },
-                { nombre: "Equipo de cómputo", icono: <FaLaptop /> },
-                { nombre: "Vehículos", icono: <FaCar /> },
-                { nombre: "Otros activos", icono: <FaBoxes /> },
-              ].map((categoria) => {
-                const abierta = categoriaActiva === categoria.nombre;
-                const rutas = rutasPorCategoria[categoria.nombre] || {
-                  inventario: `/equipos/inventario/${slugifyCategoria(categoria.nombre)}`,
-                  ingresar: `/equipos/crear?categoria=${encodeURIComponent(categoria.nombre)}`,
-                  editar: `/equipos/editar?categoria=${encodeURIComponent(categoria.nombre)}`,
-                  eliminar: `/equipos/eliminar?categoria=${encodeURIComponent(categoria.nombre)}`,
-                };
-
-                return (
-                  <div key={categoria.nombre}>
-                    <button
-                      type="button"
-                      onClick={() => setCategoriaActiva(abierta ? "" : categoria.nombre)}
-                      className={`${subLinkClass(false)} w-full justify-between text-left`}
-                    >
-                      <span className="flex items-center gap-2">{categoria.icono} {categoria.nombre}</span>
-                      {abierta ? <FaChevronUp className="text-[10px]" /> : <FaChevronDown className="text-[10px]" />}
-                    </button>
-                    {abierta && (
-                      <div className="ml-6 mt-1 flex flex-col gap-1 border-l border-blue-400/30 pl-3">
-                        <Link to={rutas.inventario} className={subLinkClass(false)}><FaClipboardList /> Inventario</Link>
-                        {isAdminRole(rol) && <>
-                          <Link to={rutas.ingresar} className={subLinkClass(false)}><FaUpload /> Ingresar</Link>
-                          <Link to={rutas.editar} className={subLinkClass(false)}><FaEdit /> Editar</Link>
-                          <Link to={rutas.eliminar} className={subLinkClass(false)}><FaTrash /> Eliminar</Link>
-                        </>}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <button onClick={() => setSuministrosOpen(!suministrosOpen)} className={categoryButtonClass}>
-              <span className="flex items-center gap-3">
-                <FaBoxOpen /> Suministros
-              </span>
-              {suministrosOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
-            </button>
-            <div className={`ml-6 mt-1 flex flex-col gap-2 overflow-hidden transition-all duration-500 ${suministrosOpen ? "max-h-48" : "max-h-0"}`}>
-              {isAdminRole(rol) && (
-                <>
-                  <Link to="/suministros" className={subLinkClass(isActive("/suministros"))}>
-                    <FaPlus /> Crear Suministro
-                  </Link>
-                  <Link to="/suministros/inventario" className={subLinkClass(isActive("/suministros/inventario"))}>
-                    <FaClipboardList /> Inventario de suministros
-                  </Link>
-                  <Link to="/suministros/movimientos" className={subLinkClass(isActive("/suministros/movimientos"))}>
-                    <FaUpload /> Movimientos de suministros
-                  </Link>
-                  <Link to="/suministros/eliminarMovimientos" className={subLinkClass(isActive("/suministros/eliminarMovimientos"))}>
-                    <FaTrash /> Eliminar Movimientos
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <button onClick={() => setMantenimientosOpen(!mantenimientosOpen)} className={categoryButtonClass}>
-              <span className="flex items-center gap-3">
-                <FaClipboardList /> Solicitudes
-              </span>
-              {mantenimientosOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
-            </button>
-            <div className={`ml-6 mt-1 flex flex-col gap-2 overflow-hidden transition-all duration-500 ${mantenimientosOpen ? "max-h-32" : "max-h-0"}`}>
-              {isAdminRole(rol) && (
-                <>
-                  <Link to="/solicitudes/crear" className={subLinkClass(isActive("/solicitudes/crear"))}>
-                    <FaUpload /> Crear
-                  </Link>
-                  <Link to="/solicitudes/eliminar" className={subLinkClass(isActive("/solicitudes/eliminar"))}>
-                    <FaTrash /> Eliminar
-                  </Link>
-                </>
-              )}
-              <Link to="/solicitudes/lista" className={subLinkClass(isActive("/solicitudes/lista"))}>
-                <FaClipboardList /> Historial
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <button onClick={() => setFormatosOpen(!formatosOpen)} className={categoryButtonClass}>
-              <span className="flex items-center gap-3">
-                <FaClipboardList /> Formatos
-              </span>
-              {formatosOpen ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
-            </button>
-            <div className={`ml-6 mt-1 flex flex-col gap-2 overflow-hidden transition-all duration-500 ${formatosOpen ? "max-h-64" : "max-h-0"}`}>
-              <button onClick={openHojaModal} className={`${subLinkClass(false)} text-left`}>
-                <FaUpload /> Hoja de responsabilidad
-              </button>
-              <button onClick={openSolvenciaModal} className={`${subLinkClass(false)} text-left`}>
-                <FaUpload /> Solvencias
-              </button>
-              <button onClick={() => setModalTrasladoRetornoOpen(true)} className={`${subLinkClass(false)} text-left`}>
-                <FaUpload /> Pase de salida con retorno
-              </button>
-              <button onClick={openBajasActivoModal} className={`${subLinkClass(false)} text-left`}>
-                <FaUpload /> Bajas
-              </button>
-              <button onClick={openTrasladoModal} className={`${subLinkClass(false)} text-left`}>
-                <FaUpload /> Traslados
-              </button>
-            </div>
-          </div>
-        </nav>
-      </div>
-
-      <div className="p-6 pt-4 shrink-0">
-        <hr className="border-blue-400/30 mb-4" />
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 font-bold text-lg px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors w-full justify-center"
-        >
-          <FaSignOutAlt /> Cerrar sesión
-        </button>
-      </div>
-
-      {createPortal(
-        <>
-          {modalHojaOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/60" onClick={closeHojaModal} />
-              <div className={modalPanelClass}>
-                <h2 className={modalTitleClass}>Selecciona una opción</h2>
-                <div className="flex flex-col gap-3">
-                  {isAdminRole(rol) && (
-                    <button onClick={() => handleHojaOption("/formatos/hojaderesponsabilidad")} className={modalPrimaryBtnClass}>
-                      Crear
-                    </button>
-                  )}
-                  <button onClick={() => handleHojaOption("/formatos/listahojasresponsabilidad")} className={modalPrimaryBtnClass}>
-                    Ver Historial
-                  </button>
-                  <button onClick={closeHojaModal} className={modalCancelBtnClass}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {modalSolvenciaOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/60" onClick={closeSolvenciaModal} />
-              <div className={modalPanelClass}>
-                <h2 className={modalTitleClass}>Solvencias</h2>
-                <div className="flex flex-col gap-3">
-                  {isAdminRole(rol) && (
-                    <button onClick={() => handleSolvenciaOption("/formatos/hojasSolvencias")} className={modalPrimaryBtnClass}>
-                      Crear
-                    </button>
-                  )}
-                  <button onClick={() => handleSolvenciaOption("/formatos/listahojasSolvencias")} className={modalPrimaryBtnClass}>
-                    Ver Historial
-                  </button>
-                  <button onClick={closeSolvenciaModal} className={modalCancelBtnClass}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {modalTrasladoOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/60" onClick={closeTrasladoModal} />
-              <div className={modalPanelClass}>
-                <h2 className={modalTitleClass}>Traslados</h2>
-                <div className="flex flex-col gap-3">
-                  {isAdminRole(rol) && (
-                    <button onClick={() => handleTrasladoOption("/formatos/traslados/crear")} className={modalPrimaryBtnClass}>
-                      Crear
-                    </button>
-                  )}
-                  <button onClick={() => handleTrasladoOption("/formatos/traslados/lista")} className={modalPrimaryBtnClass}>
-                    Ver Historial
-                  </button>
-                  <button onClick={closeTrasladoModal} className={modalCancelBtnClass}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {modalBajasActivoOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/60" onClick={closeBajasActivoModal} />
-              <div className={modalPanelClass}>
-                <h2 className={modalTitleClass}>Bajas de Activos</h2>
-                <div className="flex flex-col gap-3">
-                  {isAdminRole(rol) && (
-                    <button onClick={() => handleBajasActivoOption("/formatos/bajaAtivos")} className={modalPrimaryBtnClass}>
-                      Crear Baja
-                    </button>
-                  )}
-                  <button onClick={() => handleBajasActivoOption("/formatos/ListabajaAtivos")} className={modalPrimaryBtnClass}>
-                    Ver Historial
-                  </button>
-                  <button onClick={closeBajasActivoModal} className={modalCancelBtnClass}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {modalTrasladoRetornoOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/60" onClick={closeTrasladoRetornoModal} />
-              <div className={modalPanelClass}>
-                <h2 className={modalTitleClass}>Selecciona una opción</h2>
-                <div className="flex flex-col gap-3">
-                  {isAdminRole(rol) && (
-                    <button onClick={() => handleTrasladoRetornoOption("/formatos/trasladosRetorno/crear")} className={modalPrimaryBtnClass}>
-                      Crear Traslado Retorno
-                    </button>
-                  )}
-                  <button onClick={() => handleTrasladoRetornoOption("/formatos/trasladosRetorno/lista")} className={modalPrimaryBtnClass}>
-                    Ver Historial
-                  </button>
-                  <button onClick={closeTrasladoRetornoModal} className={modalCancelBtnClass}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>,
-        document.body
-      )}
-      </div>
-    </>
+// Barra lateral fija (escritorio)
+export default function Sidebar() {
+  return (
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 shadow-2xl shadow-blue-950/20 lg:block">
+      <SidebarContenido />
+    </aside>
   );
 }

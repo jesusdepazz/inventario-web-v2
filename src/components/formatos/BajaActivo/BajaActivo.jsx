@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BajaActivosService from "../../../services/BajaActivosServices";
 import UbicacionesService from "../../../services/UbicacionesServices";
-import EquiposService from "../../../services/EquiposServices";
+import ActivosService from "../../../services/ActivosServices";
 
 export default function BajaActivosForm() {
   const hoy = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -53,7 +53,7 @@ export default function BajaActivosForm() {
 
     setBuscandoUbicacion(true);
     try {
-      const res = await EquiposService.obtenerPorCodificacion(cod);
+      const res = await ActivosService.obtenerPorCodificacion(cod);
       const ubic = res?.data?.ubicacion ? String(res.data.ubicacion) : "No registrada";
       setForm((prev) => ({ ...prev, ubicacionActual: ubic }));
     } catch {

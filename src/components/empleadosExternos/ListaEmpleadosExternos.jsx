@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import EmpleadosExternosService from "../../services/EmpleadosExternosServices";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrVacia } from "../ui/Tabla";
+import Badge from "../ui/Badge";
 
 export default function ListaEmpleadosExternos() {
   const [externos, setExternos] = useState([]);
@@ -173,66 +175,58 @@ export default function ListaEmpleadosExternos() {
 
         {/* Tabla */}
         <div className="flex-1 min-h-0 p-6">
-          <div className="h-full overflow-auto rounded-2xl border border-slate-200">
-            <table className="min-w-[1100px] w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-blue-900 text-white">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Código</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Nombre</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Puesto</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Documento</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Teléfono</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Proyecto</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha registro</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Estado</th>
+          <TablaContenedor className="h-full">
+            <Tabla className="min-w-[1100px] w-full">
+              <THead>
+                <tr>
+                  <Th>Código</Th>
+                  <Th>Nombre</Th>
+                  <Th>Puesto</Th>
+                  <Th>Documento</Th>
+                  <Th>Teléfono</Th>
+                  <Th>Proyecto</Th>
+                  <Th>Fecha registro</Th>
+                  <Th>Estado</Th>
                   {esAdmin && (
-                    <th className="px-4 py-3 font-bold whitespace-nowrap text-center">Acciones</th>
+                    <Th className="text-center">Acciones</Th>
                   )}
                 </tr>
-              </thead>
+              </THead>
 
-              <tbody className="bg-white">
+              <TBody>
                 {filtrados.length > 0 ? (
                   filtrados.map((e, idx) => (
-                    <tr key={e.id} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top font-mono font-semibold text-slate-900 whitespace-nowrap">
+                    <Tr key={e.id} index={idx}>
+                      <Td destacado className="font-mono whitespace-nowrap">
                         {e.codigoEmpleado}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[200px] text-slate-700">
+                      </Td>
+                      <Td className="min-w-[200px]">
                         {e.nombre}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[180px] text-slate-700">
+                      </Td>
+                      <Td className="min-w-[180px]">
                         {e.puesto}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                      </Td>
+                      <Td className="whitespace-nowrap">
                         {e.documento}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                      </Td>
+                      <Td className="whitespace-nowrap">
                         {e.telefono || "—"}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top min-w-[180px] text-slate-700">
+                      </Td>
+                      <Td className="min-w-[180px]">
                         {e.proyecto || "—"}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap text-slate-700">
+                      </Td>
+                      <Td className="whitespace-nowrap">
                         {new Date(e.fechaRegistro).toLocaleDateString("es-ES", {
                           day: "2-digit",
                           month: "2-digit",
                           year: "numeric",
                         })}
-                      </td>
-                      <td className="px-4 py-4 border-t border-slate-200 align-top whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
-                            e.activo
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}
-                        >
-                          {e.activo ? "Activo" : "Inactivo"}
-                        </span>
-                      </td>
+                      </Td>
+                      <Td className="whitespace-nowrap">
+                        <Badge>{e.activo ? "Activo" : "Inactivo"}</Badge>
+                      </Td>
                       {esAdmin && (
-                        <td className="px-4 py-4 border-t border-slate-200 align-top text-center whitespace-nowrap">
+                        <Td className="text-center whitespace-nowrap">
                           <div className="flex gap-2 justify-center">
                             <button
                               onClick={() => navigate(`/externos/editar/${e.id}`)}
@@ -249,23 +243,16 @@ export default function ListaEmpleadosExternos() {
                               </button>
                             )}
                           </div>
-                        </td>
+                        </Td>
                       )}
-                    </tr>
+                    </Tr>
                   ))
                 ) : (
-                  <tr>
-                    <td
-                      colSpan={esAdmin ? 9 : 8}
-                      className="px-6 py-10 text-center text-slate-500"
-                    >
-                      No se encontraron empleados externos.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={esAdmin ? 9 : 8}>No se encontraron empleados externos.</TrVacia>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
         </div>
 
         {/* Footer */}

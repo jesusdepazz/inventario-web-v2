@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import BajaActivosService from "../../../services/BajaActivosServices";
 import { generarBajaPDF } from "./BajaActivoPDF";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrVacia } from "../../ui/Tabla";
 
 export default function ListabajaAtivos() {
   const [bajas, setBajas] = useState([]);
@@ -173,82 +174,77 @@ export default function ListabajaAtivos() {
         </div>
 
         <div className="flex-1 min-h-0 p-6">
-          <div className="h-full overflow-auto rounded-2xl border border-gray-200">
-            <table className="min-w-[1400px] w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-blue-900 text-white">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">#</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha Baja</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Codificación</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Motivo</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Detalles</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Actual</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Destino</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Acción</th>
+          <TablaContenedor className="h-full">
+            <Tabla className="min-w-[1400px]">
+              <THead>
+                <tr>
+                  <Th>#</Th>
+                  <Th>Fecha Baja</Th>
+                  <Th>Codificación</Th>
+                  <Th>Motivo</Th>
+                  <Th>Detalles</Th>
+                  <Th>Ubicación Actual</Th>
+                  <Th>Ubicación Destino</Th>
+                  <Th>Acción</Th>
                 </tr>
-              </thead>
+              </THead>
 
-              <tbody className="bg-white">
+              <TBody>
                 {bajasFiltradas.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
-                      No hay bajas registradas.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={8}>
+                    No hay bajas registradas.
+                  </TrVacia>
                 ) : (
                   bajasFiltradas.map((baja, index) => {
                     const motivo = parseMotivo(baja.motivoBaja);
 
                     return (
-                      <tr
-                        key={baja.id}
-                        className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
-                      >
-                        <td className="px-4 py-4 border-t border-gray-200 align-top text-center font-semibold">
+                      <Tr key={baja.id} index={index}>
+                        <Td className="align-top text-center">
                           {index + 1}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                        <Td className="align-top whitespace-nowrap">
                           {baja.fechaBaja
                             ? new Date(baja.fechaBaja).toLocaleDateString("es-ES")
                             : "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap font-bold text-blue-800">
+                        <Td destacado className="align-top whitespace-nowrap">
                           {baja.codificacionEquipo || "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[240px] break-words">
+                        <Td className="align-top min-w-[240px] break-words">
                           {motivo || "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[260px] break-words">
+                        <Td className="align-top min-w-[260px] break-words">
                           {baja.detallesBaja || "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px] break-words">
+                        <Td className="align-top min-w-[220px] break-words">
                           {baja.ubicacionActual || "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px] break-words font-semibold text-gray-900">
+                        <Td className="align-top min-w-[220px] break-words">
                           {baja.ubicacionDestino || "-"}
-                        </td>
+                        </Td>
 
-                        <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                        <Td className="align-top whitespace-nowrap">
                           <button
                             onClick={() => generarBajaPDF(baja.id)}
                             className="px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
                           >
                             Descargar PDF
                           </button>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     );
                   })
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
         </div>
       </div>
     </div>

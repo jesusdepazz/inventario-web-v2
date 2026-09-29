@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import TrasladosServices from "../../../services/TrasladosServices";
 import UbicacionesServices from "../../../services/UbicacionesServices";
 import EmpleadosService from "../../../services/EmpleadosServices";
-import EquiposService from "../../../services/EquiposServices";
+import ActivosService from "../../../services/ActivosServices";
+import { Tabla, THead, Th, TBody, Tr, Td } from "../../ui/Tabla";
 
 export default function CrearTraslado() {
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ export default function CrearTraslado() {
     if (!c) return;
 
     try {
-      const res = await EquiposService.obtenerPorCodificacion(c);
+      const res = await ActivosService.obtenerPorCodificacion(c);
       const eq = res.data;
 
       setInfoEquipo(eq);
@@ -120,7 +121,7 @@ export default function CrearTraslado() {
         UbicacionDesde: eq.ubicacion || ""
       }));
     } catch (err) {
-      alert("Equipo no encontrado ❌");
+      alert("Activo no encontrado ❌");
     }
   };
 
@@ -439,26 +440,26 @@ export default function CrearTraslado() {
                   <div className="p-5 text-sm text-gray-500">No hay equipos agregados todavía.</div>
                 ) : (
                   <div className="max-h-56 overflow-auto">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
-                        <tr className="text-left">
-                          <th className="px-4 py-3 font-bold">Codificación</th>
-                          <th className="px-4 py-3 font-bold">Descripción</th>
-                          <th className="px-4 py-3 font-bold">Marca</th>
-                          <th className="px-4 py-3 font-bold">Modelo</th>
-                          <th className="px-4 py-3 font-bold">Serie</th>
-                          <th className="px-4 py-3 font-bold"></th>
+                    <Tabla>
+                      <THead>
+                        <tr>
+                          <Th>Codificación</Th>
+                          <Th>Descripción</Th>
+                          <Th>Marca</Th>
+                          <Th>Modelo</Th>
+                          <Th>Serie</Th>
+                          <Th></Th>
                         </tr>
-                      </thead>
-                      <tbody>
+                      </THead>
+                      <TBody>
                         {equipos.map((e, i) => (
-                          <tr key={`${e.Equipo}-${i}`} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                            <td className="px-4 py-3 border-t border-gray-200 font-semibold text-blue-800">{e.Equipo}</td>
-                            <td className="px-4 py-3 border-t border-gray-200">{e.DescripcionEquipo}</td>
-                            <td className="px-4 py-3 border-t border-gray-200">{e.Marca}</td>
-                            <td className="px-4 py-3 border-t border-gray-200">{e.Modelo}</td>
-                            <td className="px-4 py-3 border-t border-gray-200">{e.Serie}</td>
-                            <td className="px-4 py-3 border-t border-gray-200 text-right">
+                          <Tr key={`${e.Equipo}-${i}`} index={i}>
+                            <Td destacado>{e.Equipo}</Td>
+                            <Td>{e.DescripcionEquipo}</Td>
+                            <Td>{e.Marca}</Td>
+                            <Td>{e.Modelo}</Td>
+                            <Td>{e.Serie}</Td>
+                            <Td className="text-right">
                               <button
                                 type="button"
                                 onClick={() => quitarEquipo(i)}
@@ -466,11 +467,11 @@ export default function CrearTraslado() {
                               >
                                 Quitar
                               </button>
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                         ))}
-                      </tbody>
-                    </table>
+                      </TBody>
+                    </Tabla>
                   </div>
                 )}
               </div>

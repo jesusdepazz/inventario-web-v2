@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SolvenciasService from "../../../services/HojasSolvencias";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import HojaSolvenciaPDF from "./HojaSolvenciaPDF";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrVacia } from "../../ui/Tabla";
 
 export default function ListaHojaSolvencia() {
   const [historico, setHistorico] = useState([]);
@@ -159,67 +160,67 @@ export default function ListaHojaSolvencia() {
         </div>
 
         <div className="flex-1 min-h-0 p-6">
-          <div className="h-full overflow-auto rounded-2xl border border-gray-200">
-            <table className="min-w-[1450px] w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-blue-900 text-white">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Solvencia No.</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Código</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Nombre</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Puesto</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Departamento</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Hoja No.</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Jefe Inmediato</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Observaciones</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Acciones</th>
+          <TablaContenedor className="h-full">
+            <Tabla className="min-w-[1450px]">
+              <THead>
+                <tr>
+                  <Th>Solvencia No.</Th>
+                  <Th>Fecha</Th>
+                  <Th>Código</Th>
+                  <Th>Nombre</Th>
+                  <Th>Puesto</Th>
+                  <Th>Departamento</Th>
+                  <Th>Hoja No.</Th>
+                  <Th>Jefe Inmediato</Th>
+                  <Th>Observaciones</Th>
+                  <Th>Acciones</Th>
                 </tr>
-              </thead>
+              </THead>
 
-              <tbody className="bg-white">
+              <TBody>
                 {filtrados.length > 0 ? (
                   filtrados.map((r, i) => (
-                    <tr
+                    <Tr
                       key={r.raw?.id ?? `${r.solvenciaNo}-${i}`}
-                      className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                      index={i}
                     >
-                      <td className="px-4 py-4 border-t border-gray-200 align-top font-bold text-blue-800 whitespace-nowrap">
+                      <Td destacado className="align-top whitespace-nowrap">
                         {r.solvenciaNo || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {r.fecha ? r.fecha.toLocaleDateString("es-ES") : "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {r.codigo || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px]">
+                      <Td className="align-top min-w-[220px]">
                         {r.nombre || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px]">
+                      <Td className="align-top min-w-[220px]">
                         {r.puesto || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px]">
+                      <Td className="align-top min-w-[220px]">
                         {r.depto || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {r.hojaNo || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {r.jefeInmediato || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[320px] break-words">
+                      <Td className="align-top min-w-[320px] break-words">
                         {r.observaciones || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         <PDFDownloadLink
                           document={<HojaSolvenciaPDF data={r.raw} />}
                           fileName={`HojaSolvencia-${r.raw?.id ?? r.solvenciaNo}.pdf`}
@@ -233,19 +234,17 @@ export default function ListaHojaSolvencia() {
                             </button>
                           )}
                         </PDFDownloadLink>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={10} className="px-6 py-10 text-center text-gray-500">
-                      No hay solvencias para mostrar.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={10}>
+                    No hay solvencias para mostrar.
+                  </TrVacia>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
         </div>
       </div>
     </div>

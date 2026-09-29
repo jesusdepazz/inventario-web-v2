@@ -1,87 +1,95 @@
 import React, { useEffect, useMemo, useState } from "react";
-import EquiposService from "../../services/EquiposServices";
+import VehiculosService from "../../services/VehiculosServices";
+import { aLista } from "../../services/payload";
+import { useEmpresa } from "../../context/empresa";
+import InventarioActivos from "../activos/InventarioActivos";
+import VehiculoDetalleModal from "./VehiculoDetalleModal";
+import { CAMPOS_INGRESO, PLANTILLA } from "./config";
+
+const columnas = [
+  { key: "codificacion", label: "Codificación", render: (v) => <span className="font-semibold">{v.codificacion || "-"}</span> },
+  { key: "tipoEquipo", label: "Familia" },
+  { key: "marca", label: "Marca" },
+  { key: "modelo", label: "Modelo" },
+  { key: "modeloAnio", label: "Año" },
+  { key: "placa", label: "Placa" },
+  { key: "vin", label: "VIN" },
+  { key: "color", label: "Color" },
+  { key: "tipoCombustible", label: "Combustible" },
+  { key: "kilometrajeActual", label: "Kilometraje" },
+  { key: "responsableActual", label: "Responsable" },
+  { key: "ubicacion", label: "Ubicación" },
+  { key: "estado", label: "Estado" },
+];
+
+const cargar = async (empresa) => aLista((await VehiculosService.obtenerTodos({ empresa })).data);
 
 export default function InventarioVehiculos() {
-  const [equipos, setEquipos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [busqueda, setBusqueda] = useState("");
+  const { empresa } = useEmpresa();
+  const [alertas, setAlertas] = useState([]);
+  const [detalleId, setDetalleId] = useState(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    const cargar = async () => {
-      try {
-        setLoading(true);
-        const res = await EquiposService.obtenerEquipos();
-        const lista = Array.isArray(res.data) ? res.data : res.data?.$values ?? [];
-        setEquipos(lista.filter((e) => e.categoria === "Vehículos"));
-      } catch (error) {
-        console.error("Error al cargar vehículos:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    VehiculosService.obtenerAlertasPendientes({ empresa })
+      .then((res) => setAlertas(aLista(res.data)))
+      .catch((error) => console.error("Error al cargar alertas:", error));
+  }, [empresa, version]);
 
-    cargar();
-  }, []);
+  const alertasPorVehiculo = useMemo(() => {
+    const conteo = {};
+    alertas.forEach((a) => {
+      conteo[a.vehiculoId] = (conteo[a.vehiculoId] || 0) + 1;
+    });
+    return conteo;
+  }, [alertas]);
 
-  const filtrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    if (!q) return equipos;
-    return equipos.filter((equipo) =>
-      [equipo.codificacion, equipo.marca, equipo.modelo, equipo.placa, equipo.vin, equipo.ubicacion]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [equipos, busqueda]);
+  const aviso = alertas.length > 0 && (
+    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-4 text-sm text-amber-900">
+      <p className="font-semibold">Alertas de servicio pendientes: {alertas.length}</p>
+      <ul className="mt-2 space-y-1">
+        {alertas.slice(0, 6).map((a) => (
+          <li key={a.id}>
+            <button onClick={() => setDetalleId(a.vehiculoId)} className="font-semibold underline">
+              {a.vehiculo?.codificacion || a.vehiculo?.placa || `Vehículo ${a.vehiculoId}`}
+            </button>
+            {" — "}{a.tipoAlerta || "Servicio"}{a.notas ? ` · ${a.notas}` : ""}
+          </li>
+        ))}
+        {alertas.length > 6 && <li>… y {alertas.length - 6} más</li>}
+      </ul>
+    </div>
+  );
 
   return (
-    <div className="h-full flex flex-col p-4">
-      <div className="mb-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-extrabold text-slate-900">Inventario de vehículos</h1>
-            <p className="text-sm text-slate-600">Control técnico, placa y ubicación del parque automotor.</p>
-          </div>
-          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar por codificación o placa" className="w-full md:w-80 rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-800" />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-100 text-left text-slate-700">
-            <tr>
-              <th className="px-4 py-3">#</th>
-              <th className="px-4 py-3">Codificación</th>
-              <th className="px-4 py-3">Familia</th>
-              <th className="px-4 py-3">Marca</th>
-              <th className="px-4 py-3">Modelo</th>
-              <th className="px-4 py-3">Placa</th>
-              <th className="px-4 py-3">VIN</th>
-              <th className="px-4 py-3">Ubicación</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Cargando...</td></tr>
-            ) : filtrados.length > 0 ? (
-              filtrados.map((equipo, index) => (
-                <tr key={equipo.id ?? index} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3">{index + 1}</td>
-                  <td className="px-4 py-3 font-semibold">{equipo.codificacion || "-"}</td>
-                  <td className="px-4 py-3">{equipo.familia || "-"}</td>
-                  <td className="px-4 py-3">{equipo.marca || "-"}</td>
-                  <td className="px-4 py-3">{equipo.modelo || "-"}</td>
-                  <td className="px-4 py-3">{equipo.placa || "-"}</td>
-                  <td className="px-4 py-3">{equipo.vin || "-"}</td>
-                  <td className="px-4 py-3">{equipo.ubicacion || "-"}</td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">No se encontraron registros.</td></tr>
+    <>
+      <InventarioActivos
+        titulo="Inventario de vehículos"
+        subtitulo="Control técnico, kilometraje, mantenimientos y seguros del parque automotor"
+        categoria="Vehículos"
+        cargar={cargar}
+        columnas={columnas}
+        camposIngreso={CAMPOS_INGRESO}
+        importar={VehiculosService.importarExcel}
+        plantilla={PLANTILLA}
+        aviso={aviso}
+        version={version}
+        accionesExtra={(v) => (
+          <button onClick={() => setDetalleId(v.id)} className="relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition active:scale-[0.97] bg-blue-900 text-white shadow-sm hover:bg-blue-950">
+            Control del vehículo
+            {alertasPorVehiculo[v.id] > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold ring-2 ring-white">{alertasPorVehiculo[v.id]}</span>
             )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </button>
+        )}
+      />
+      {detalleId && (
+        <VehiculoDetalleModal
+          vehiculoId={detalleId}
+          onClose={() => setDetalleId(null)}
+          onCambio={() => setVersion((n) => n + 1)}
+        />
+      )}
+    </>
   );
 }

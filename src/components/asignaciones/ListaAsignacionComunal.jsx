@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "../../utils/toast";
 import AsignacionesComunalesService from "../../services/AsignacionesComunalesService";
 import UbicacionesService from "../../services/UbicacionesServices";
-import EquiposService from "../../services/EquiposServices";
+import ActivosService from "../../services/ActivosServices";
 import generarPDFAsignacionComunal from "./AsignacionComunalPDF";
 import { FaFilePdf, FaEdit, FaHistory } from "react-icons/fa";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../ui/Tabla";
+import Badge from "../ui/Badge";
 
 const lowerFirst = (key) => key.charAt(0).toLowerCase() + key.slice(1);
 
@@ -167,14 +169,14 @@ const ListaAsignacionComunal = () => {
 
     try {
       setLoadingNuevoEquipo(true);
-      const { data } = await EquiposService.obtenerPorCodificacion(cod);
+      const { data } = await ActivosService.obtenerPorCodificacion(cod);
       setEditNuevosEquipos((prev) => [
         ...prev,
         { codificacion: cod, modelo: data?.modelo || "" },
       ]);
       setEditNuevoCodigo("");
     } catch {
-      toast.error("Equipo no encontrado");
+      toast.error("Activo no encontrado");
     } finally {
       setLoadingNuevoEquipo(false);
     }
@@ -315,52 +317,47 @@ const ListaAsignacionComunal = () => {
           </div>
         </div>
         <div className="px-6 py-5">
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <div className="max-h-[58vh] overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                  <tr className="text-left text-slate-700">
-                    <th className="px-4 py-3 font-semibold w-16">#</th>
-                    <th className="px-4 py-3 font-semibold">Correlativo</th>
-                    <th className="px-4 py-3 font-semibold">Equipo</th>
-                    <th className="px-4 py-3 font-semibold">Ubicación</th>
-                    <th className="px-4 py-3 font-semibold">Observaciones</th>
-                    <th className="px-4 py-3 font-semibold">Fecha asignación</th>
-                    <th className="px-4 py-3 font-semibold">Última actualización</th>
-                    <th className="px-4 py-3 font-semibold">Acciones</th>
+          <TablaContenedor className="max-h-[58vh]">
+              <Tabla>
+                <THead>
+                  <tr>
+                    <Th className="w-16">#</Th>
+                    <Th>Correlativo</Th>
+                    <Th>Equipo</Th>
+                    <Th>Ubicación</Th>
+                    <Th>Observaciones</Th>
+                    <Th>Fecha asignación</Th>
+                    <Th>Última actualización</Th>
+                    <Th>Acciones</Th>
                   </tr>
-                </thead>
+                </THead>
 
-                <tbody className="divide-y divide-slate-100">
+                <TBody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                        Cargando...
-                      </td>
-                    </tr>
+                    <TrCargando colSpan={8} />
                   ) : paginadas.length > 0 ? (
                     paginadas.map((asig, idx) => (
-                      <tr key={asig.id ?? `${asig.codificacionEquipo}-${idx}`} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-600">
+                      <Tr key={asig.id ?? `${asig.codificacionEquipo}-${idx}`} index={idx}>
+                        <Td>
                           {(pageSafe - 1) * pageSize + idx + 1}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">{asig.correlativo || "-"}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-900">
+                        </Td>
+                        <Td destacado>{asig.correlativo || "-"}</Td>
+                        <Td destacado>
                           {asig.codificacionEquipo}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">{asig.ubicacion || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">{asig.observaciones || "-"}</td>
-                        <td className="px-4 py-3 text-slate-700">
+                        </Td>
+                        <Td>{asig.ubicacion || "-"}</Td>
+                        <Td>{asig.observaciones || "-"}</Td>
+                        <Td className="whitespace-nowrap">
                           {asig.fechaAsignacion
                             ? new Date(asig.fechaAsignacion).toLocaleDateString()
                             : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
+                        </Td>
+                        <Td className="whitespace-nowrap">
                           {asig.fechaActualizacion
                             ? new Date(asig.fechaActualizacion).toLocaleDateString()
                             : "-"}
-                        </td>
-                        <td className="px-4 py-3">
+                        </Td>
+                        <Td>
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
@@ -391,20 +388,15 @@ const ListaAsignacionComunal = () => {
                               Eliminar
                             </button>
                           </div>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
-                        No hay asignaciones comunales registradas.
-                      </td>
-                    </tr>
+                    <TrVacia colSpan={8}>No hay asignaciones comunales registradas.</TrVacia>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </TBody>
+              </Tabla>
+          </TablaContenedor>
           <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <div className="text-sm text-slate-600">
               Página <b>{pageSafe}</b> de <b>{totalPages}</b> ·{" "}
@@ -521,37 +513,29 @@ const ListaAsignacionComunal = () => {
                 </button>
               </div>
 
-              <div className="max-h-52 overflow-auto border-t border-slate-100">
-                <table className="min-w-full text-xs">
-                  <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                    <tr className="text-left text-slate-700">
-                      <th className="px-3 py-2 font-semibold">Codificación</th>
-                      <th className="px-3 py-2 font-semibold">Estado</th>
-                      <th className="px-3 py-2 font-semibold w-16">Acción</th>
+              <TablaContenedor className="max-h-52 mx-3 mb-3">
+                <Tabla>
+                  <THead>
+                    <tr>
+                      <Th>Codificación</Th>
+                      <Th>Estado</Th>
+                      <Th className="w-16">Acción</Th>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  </THead>
+                  <TBody>
                     {loadingGrupo ? (
-                      <tr>
-                        <td colSpan={3} className="px-3 py-6 text-center text-slate-500">
-                          Cargando equipos...
-                        </td>
-                      </tr>
+                      <TrCargando colSpan={3} filas={3} />
                     ) : editEquiposGrupo.length === 0 && editNuevosEquipos.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="px-3 py-6 text-center text-slate-500">
-                          Sin equipos
-                        </td>
-                      </tr>
+                      <TrVacia colSpan={3}>Sin equipos</TrVacia>
                     ) : (
                       <>
-                        {editEquiposGrupo.map((eq) => (
-                          <tr key={eq.id} className="hover:bg-slate-50">
-                            <td className="px-3 py-2 font-semibold text-slate-900">
+                        {editEquiposGrupo.map((eq, i) => (
+                          <Tr key={eq.id} index={i}>
+                            <Td destacado>
                               {eq.codificacionEquipo}
-                            </td>
-                            <td className="px-3 py-2 text-slate-500">Actual</td>
-                            <td className="px-3 py-2">
+                            </Td>
+                            <Td><Badge tono="gris">Actual</Badge></Td>
+                            <Td>
                               <button
                                 type="button"
                                 onClick={() => quitarEquipoDelGrupo(eq.id)}
@@ -559,16 +543,16 @@ const ListaAsignacionComunal = () => {
                               >
                                 Quitar
                               </button>
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                         ))}
-                        {editNuevosEquipos.map((eq) => (
-                          <tr key={`nuevo-${eq.codificacion}`} className="hover:bg-slate-50 bg-emerald-50/40">
-                            <td className="px-3 py-2 font-semibold text-slate-900">
+                        {editNuevosEquipos.map((eq, i) => (
+                          <Tr key={`nuevo-${eq.codificacion}`} index={editEquiposGrupo.length + i} className="bg-emerald-50/40">
+                            <Td destacado>
                               {eq.codificacion}
-                            </td>
-                            <td className="px-3 py-2 text-emerald-700">Nuevo</td>
-                            <td className="px-3 py-2">
+                            </Td>
+                            <Td><Badge tono="verde">Nuevo</Badge></Td>
+                            <Td>
                               <button
                                 type="button"
                                 onClick={() => quitarNuevoEquipo(eq.codificacion)}
@@ -576,14 +560,14 @@ const ListaAsignacionComunal = () => {
                               >
                                 Quitar
                               </button>
-                            </td>
-                          </tr>
+                            </Td>
+                          </Tr>
                         ))}
                       </>
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </TBody>
+                </Tabla>
+              </TablaContenedor>
             </div>
           </div>
 
@@ -618,47 +602,39 @@ const ListaAsignacionComunal = () => {
             <b>{verVersiones.version ?? 0}</b>
           </p>
 
-          <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-slate-200">
-            <table className="min-w-full text-xs">
-              <thead className="sticky top-0 bg-slate-100 border-b border-slate-200">
-                <tr className="text-left text-slate-700">
-                  <th className="px-3 py-2 font-semibold">Versión</th>
-                  <th className="px-3 py-2 font-semibold">Ubicación</th>
-                  <th className="px-3 py-2 font-semibold">Observaciones</th>
-                  <th className="px-3 py-2 font-semibold">Guardado</th>
+          <TablaContenedor className="flex-1 min-h-0">
+            <Tabla>
+              <THead>
+                <tr>
+                  <Th>Versión</Th>
+                  <Th>Ubicación</Th>
+                  <Th>Observaciones</Th>
+                  <Th>Guardado</Th>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+              </THead>
+              <TBody>
                 {loadingVersiones ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
-                      Cargando...
-                    </td>
-                  </tr>
+                  <TrCargando colSpan={4} filas={3} />
                 ) : versiones.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
-                      Todavía no hay versiones anteriores registradas.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={4}>Todavía no hay versiones anteriores registradas.</TrVacia>
                 ) : (
-                  versiones.map((v) => {
+                  versiones.map((v, i) => {
                     const datos = parseSnapshot(v.datosJson);
                     return (
-                      <tr key={v.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-semibold text-slate-900">{v.numeroVersion}</td>
-                        <td className="px-3 py-2 text-slate-700">{datos.ubicacion || "-"}</td>
-                        <td className="px-3 py-2 text-slate-700">{datos.observaciones || "-"}</td>
-                        <td className="px-3 py-2 text-slate-700">
+                      <Tr key={v.id} index={i}>
+                        <Td destacado>{v.numeroVersion}</Td>
+                        <Td>{datos.ubicacion || "-"}</Td>
+                        <Td>{datos.observaciones || "-"}</Td>
+                        <Td className="whitespace-nowrap">
                           {v.fechaGuardado ? new Date(v.fechaGuardado).toLocaleString() : "-"}
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     );
                   })
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
 
           <div className="mt-4 flex justify-end">
             <button

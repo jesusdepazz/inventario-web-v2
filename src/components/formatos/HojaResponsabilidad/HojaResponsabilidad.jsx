@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import HojasService from "../../../services/HojasServices";
-import EquiposService from "../../../services/EquiposServices";
+import ActivosService from "../../../services/ActivosServices";
 import EmpleadosService from "../../../services/EmpleadosServices";
 import AsignacionesService from "../../../services/AsignacionesServices";
 import EmpleadosExternosService from "../../../services/EmpleadosExternosServices";
@@ -139,7 +139,7 @@ const HojaResponsabilidadForm = () => {
     if (!equipoCodificacion?.trim()) return;
 
     try {
-      const res = await EquiposService.obtenerPorCodificacion(equipoCodificacion.trim());
+      const res = await ActivosService.obtenerPorCodificacion(equipoCodificacion.trim());
       const eq = res.data;
 
       setEquipos((prev) => {
@@ -150,7 +150,7 @@ const HojaResponsabilidadForm = () => {
 
       setEquipoCodificacion("");
     } catch (err) {
-      window.alert("Equipo no encontrado");
+      window.alert("Activo no encontrado");
     }
   };
 

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "../../../utils/toast";
 import TrasladosRetornoService from "../../../services/TrasladosRetornoService";
 import PdfTrasladosRetorno from "./TrasladosRetornoPDF";
 import { pdf } from "@react-pdf/renderer";
+import { TablaContenedor, Tabla, THead, Th, TBody, Tr, Td, TrCargando, TrVacia } from "../../ui/Tabla";
+import Badge from "../../ui/Badge";
 
 const TrasladosRetornoLista = () => {
   const [traslados, setTraslados] = useState([]);
@@ -190,57 +192,48 @@ const TrasladosRetornoLista = () => {
         </div>
 
         <div className="flex-1 min-h-0 p-6">
-          <div className="h-full overflow-auto rounded-2xl border border-gray-200">
-            <table className="min-w-[1500px] w-full text-sm border-separate border-spacing-0">
-              <thead className="sticky top-0 z-10 bg-blue-900 text-white">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">#</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Número</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha Pase</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Solicitante</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Activos</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Motivo</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Ubicación Retorno</th>
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Fecha Retorno</th>
+          <TablaContenedor className="h-full">
+            <Tabla className="min-w-[1500px]">
+              <THead>
+                <tr>
+                  <Th>#</Th>
+                  <Th>Número</Th>
+                  <Th>Fecha Pase</Th>
+                  <Th>Solicitante</Th>
+                  <Th>Activos</Th>
+                  <Th>Motivo</Th>
+                  <Th>Ubicación Retorno</Th>
+                  <Th>Fecha Retorno</Th>
                   {esAdmin && (
-                    <th className="px-4 py-3 font-bold whitespace-nowrap">Estado</th>
+                    <Th>Estado</Th>
                   )}
-                  <th className="px-4 py-3 font-bold whitespace-nowrap">Acciones</th>
+                  <Th>Acciones</Th>
                 </tr>
-              </thead>
+              </THead>
 
-              <tbody className="bg-white">
+              <TBody>
                 {cargando ? (
-                  <tr>
-                    <td colSpan={esAdmin ? 10 : 9} className="px-6 py-10 text-center text-gray-500">
-                      Cargando traslados...
-                    </td>
-                  </tr>
+                  <TrCargando colSpan={esAdmin ? 10 : 9} />
                 ) : filtrar.length === 0 ? (
-                  <tr>
-                    <td colSpan={esAdmin ? 10 : 9} className="px-6 py-10 text-center text-gray-500">
-                      No se encontraron registros.
-                    </td>
-                  </tr>
+                  <TrVacia colSpan={esAdmin ? 10 : 9}>
+                    No se encontraron registros.
+                  </TrVacia>
                 ) : (
                   filtrar.map((t, idx) => (
-                    <tr
-                      key={t.id}
-                      className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}
-                    >
-                      <td className="px-4 py-4 border-t border-gray-200 align-top text-center font-semibold">
+                    <Tr key={t.id} index={idx}>
+                      <Td className="align-top text-center">
                         {idx + 1}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap font-bold text-blue-800">
+                      <Td destacado className="align-top whitespace-nowrap">
                         {t.no || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {formatearFecha(t.fechaPase)}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[260px]">
+                      <Td className="align-top min-w-[260px]">
                         {Array.isArray(t.empleados) && t.empleados.length > 0 ? (
                           <div className="space-y-3">
                             {t.empleados.map((emp, i) => (
@@ -269,9 +262,9 @@ const TrasladosRetornoLista = () => {
                         ) : (
                           "-"
                         )}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[320px]">
+                      <Td className="align-top min-w-[320px]">
                         {Array.isArray(t.equipos) && t.equipos.length > 0 ? (
                           <div className="max-h-28 overflow-auto pr-2">
                             <ul className="space-y-2">
@@ -288,35 +281,27 @@ const TrasladosRetornoLista = () => {
                         ) : (
                           "-"
                         )}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[220px] break-words">
+                      <Td className="align-top min-w-[220px] break-words">
                         {t.motivoSalida || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top min-w-[260px] break-words">
+                      <Td className="align-top min-w-[260px] break-words">
                         {t.ubicacionRetorno || "-"}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         {formatearFecha(t.fechaRetorno)}
-                      </td>
+                      </Td>
 
                       {esAdmin && (
-                        <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
-                          <span
-                            className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full ${
-                              t.estado === "Anulado"
-                                ? "bg-red-50 text-red-700 border border-red-200"
-                                : "bg-green-50 text-green-700 border border-green-200"
-                            }`}
-                          >
-                            {t.estado || "Vigente"}
-                          </span>
-                        </td>
+                        <Td className="align-top whitespace-nowrap">
+                          <Badge>{t.estado || "Vigente"}</Badge>
+                        </Td>
                       )}
 
-                      <td className="px-4 py-4 border-t border-gray-200 align-top whitespace-nowrap">
+                      <Td className="align-top whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => descargarPDF(t.id)}
@@ -334,13 +319,13 @@ const TrasladosRetornoLista = () => {
                             </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TBody>
+            </Tabla>
+          </TablaContenedor>
         </div>
       </div>
     </div>
